@@ -42,7 +42,7 @@ export const ActionSheet: React.FC<ActionSheetProps> = ({
             <div className="space-y-3">
               <motion.button
                 onClick={onMessage}
-                className="w-full flex items-center space-x-4 p-4 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                className="w-full flex items-center space-x-4 p-4 pb-32 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
                 whileTap={{ scale: 0.95 }}
               >
                 <MessageCircle className="w-6 h-6 text-black" />

@@ -7,6 +7,8 @@ import { CelebrationAnimation } from '@/components/feed/CelebrationAnimation';
 import { getFeedPosts, addComment, markNotForMe, Post } from '@/api/posts';
 import { useToast } from '@/hooks/useToast';
 import { useNavigate } from 'react-router-dom';
+import { startConversation } from '@/api/chat';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const Home: React.FC = () => {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -21,6 +23,7 @@ export const Home: React.FC = () => {
   const [celebrationType, setCelebrationType] = useState<'like' | 'comment' | 'share' | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const loadPosts = useCallback(async (pageNum: number = 1) => {
     try {
@@ -163,12 +166,35 @@ export const Home: React.FC = () => {
     }
   };
 
-  const handleMessageAuthor = async () => {
-    toast({
-      title: "Feature Unavailable",
-      description: "Messaging feature is not available",
-      variant: "destructive"
-    });
+  const handleStartChat = async () => {
+    if (!selectedPostId) return;
+
+    const post = posts.find(p => p._id === selectedPostId);
+    if (!post) return;
+
+    const authorId = post.author._id;
+
+    if (authorId === user?._id) {
+      toast({
+        title: "Can't message yourself",
+        description: "You cannot start a conversation with yourself.",
+      });
+      setShowActionSheet(false);
+      return;
+    }
+
+    try {
+      const conversation = await startConversation(authorId);
+      setShowActionSheet(false);
+      navigate(`/chat/${conversation._id}`, { state: { isNewConversation: true } });
+    } catch (error) {
+      console.error('Error starting conversation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to start conversation.",
+        variant: "destructive"
+      });
+    }
   };
 
   // Handle keyboard navigation
@@ -271,7 +297,7 @@ export const Home: React.FC = () => {
       <ActionSheet
         isOpen={showActionSheet}
         onClose={() => setShowActionSheet(false)}
-        onMessage={handleMessageAuthor}
+        onMessage={handleStartChat}
       />
 
       <CelebrationAnimation
