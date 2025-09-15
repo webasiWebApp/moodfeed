@@ -28,7 +28,7 @@ export const CreatePost: React.FC = () => {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { register, handleSubmit, formState: { errors }, watch } = useForm<CreatePostForm>();
+  const { register, handleSubmit, watch } = useForm<CreatePostForm>();
   const { toast } = useToast();
   const navigate = useNavigate();
 

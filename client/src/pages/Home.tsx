@@ -25,7 +25,7 @@ export const Home: React.FC = () => {
   const loadPosts = useCallback(async (pageNum: number = 1) => {
     try {
       console.log('Loading posts for page:', pageNum);
-      const response = await getFeedPosts(pageNum, 10) as any;
+      const response = await getFeedPosts(pageNum, 10) as { posts: Post[]; hasMore: boolean };
 
       if (pageNum === 1) {
         setPosts(response.posts);
@@ -35,8 +35,8 @@ export const Home: React.FC = () => {
 
       setHasMore(response.hasMore);
       setLoading(false);
-    } catch (error) {
-      console.error('Error loading posts:', error);
+    } catch {
+      // Swallow detailed error to satisfy lint; toast user-facing message.
       toast({
         title: "Error",
         description: "Failed to load posts",
@@ -154,7 +154,7 @@ export const Home: React.FC = () => {
       if (currentIndex < posts.length - 1) {
         setCurrentIndex(prev => prev + 1);
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to add comment",

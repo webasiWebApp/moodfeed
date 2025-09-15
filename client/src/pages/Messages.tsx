@@ -3,8 +3,7 @@ import { motion } from 'framer-motion';
 import { Search, MessageCircle, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
+// Removed unused UI imports
 import { ConversationItem } from '@/components/chat/ConversationItem';
 import { getConversations, Conversation } from '@/api/chat';
 import { useToast } from '@/hooks/useToast';

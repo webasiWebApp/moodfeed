@@ -67,7 +67,7 @@ export const PostCard: React.FC<PostCardProps> = ({
 
   const handleLike = async () => {
     try {
-      const response = await toggleLikePost(post._id) as any;
+      const response = await toggleLikePost(post._id) as { isLiked: boolean; likesCount: number };
       setIsLiked(response.isLiked);
       setLikesCount(response.likesCount);
 
@@ -76,7 +76,7 @@ export const PostCard: React.FC<PostCardProps> = ({
         scale: [1, 1.2, 1],
         transition: { duration: 0.3 }
       });
-    } catch (error) {
+    } catch {
       toast({
         title: "Error",
         description: "Failed to like post",
@@ -85,7 +85,7 @@ export const PostCard: React.FC<PostCardProps> = ({
     }
   };
 
-  const handlePanEnd = (_event: any, info: PanInfo) => {
+  const handlePanEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     const threshold = 100;
     
     // Determine if the swipe is more horizontal or vertical
