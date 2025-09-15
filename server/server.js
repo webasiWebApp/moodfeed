@@ -1,3 +1,4 @@
+
 // Load environment variables
 require("dotenv").config();
 const mongoose = require("mongoose");
@@ -5,44 +6,48 @@ const express = require("express");
 const session = require("express-session");
 const MongoStore = require('connect-mongo');
 const path = require('path');
+const http = require('http');
+const { Server } = require("socket.io");
+const jwt = require('jsonwebtoken');
+const User = require('./models/User');
+
 const basicRoutes = require("./routes/index");
-const authRoutes = require("./routes/authRoutes");
+const authRoutes =require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
 const postRoutes = require('./routes/postRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const chatService = require('./services/chatService');
 const { connectDB } = require("./config/database");
 const cors = require("cors");
 
-if (!process.env.DATABASE_URL) {
-  console.error("Error: DATABASE_URL variables in .env missing.");
+if (!process.env.DATABASE_URL || !process.env.JWT_SECRET) {
+  console.error("Error: DATABASE_URL or JWT_SECRET variables in .env missing.");
   process.exit(-1);
 }
 
 const app = express();
-const server = require('http').createServer(app);
-const port = process.env.PORT || 3000;
-// Pretty-print JSON responses
-app.enable('json spaces');
-// We want to be consistent with URL paths, so we enable strict routing
-app.enable('strict routing');
+const server = http.createServer(app);
 
-// Configure CORS
-app.use(cors({
-  origin: 'http://localhost:5173', // Vite's default port
+const port = process.env.PORT || 3000;
+const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+
+const corsOptions = {
+  origin: clientUrl,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
-}));
+};
 
-// Configure body parsers
+app.use(cors(corsOptions));
+app.enable('json spaces');
+app.enable('strict routing');
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
-// Database connection
 connectDB();
 
-// Error event handler
 app.on("error", (error) => {
   console.error(`Server error: ${error.message}`);
   console.error(error.stack);
@@ -56,14 +61,10 @@ app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api', basicRoutes);
 
-// Set up static file serving with proper CORS and caching
 app.use('/uploads', express.static(path.join(__dirname, 'userUploadedFilesForPost'), {
   setHeaders: (res, path) => {
-    // Enable CORS for media files
-    res.set('Access-Control-Allow-Origin', 'http://localhost:5173');
-    // Set cache control for better performance
-    res.set('Cache-Control', 'public, max-age=31557600'); // Cache for 1 year
-    // Set content type based on file extension
+    res.set('Access-Control-Allow-Origin', clientUrl);
+    res.set('Cache-Control', 'public, max-age=31557600');
     if (path.endsWith('.mp4')) {
       res.set('Content-Type', 'video/mp4');
     }
@@ -80,6 +81,54 @@ app.use((err, req, res, next) => {
   console.error(`Unhandled application error: ${err.message}`);
   console.error(err.stack);
   res.status(500).send("There was an error serving your request.");
+});
+
+const io = new Server(server, {
+  cors: {
+    origin: clientUrl,
+    methods: ["GET", "POST"]
+  }
+});
+
+io.use(async (socket, next) => {
+  const token = socket.handshake.auth.token;
+  if (!token) {
+    return next(new Error('Authentication error'));
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.sub).select('-password');
+    if (!user) {
+      return next(new Error('Authentication error'));
+    }
+    socket.user = user;
+    next();
+  } catch (error) {
+    return next(new Error('Authentication error'));
+  }
+});
+
+io.on('connection', (socket) => {
+  console.log('a user connected:', socket.user.username);
+
+  socket.on('joinRoom', (roomId) => {
+    socket.join(roomId);
+    console.log(`User ${socket.user.username} joined room: ${roomId}`);
+  });
+
+  socket.on('sendMessage', async (data) => {
+    try {
+      const { roomId, message } = data;
+      const savedMessage = await chatService.sendMessage(roomId, socket.user._id, message.content);
+      io.to(roomId).emit('receiveMessage', savedMessage);
+    } catch (error) {
+      console.error('Error handling message:', error);
+    }
+  });
+
+  socket.on('disconnect', () => {
+    console.log('user disconnected:', socket.user.username);
+  });
 });
 
 server.listen(port, () => {

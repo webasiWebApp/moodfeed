@@ -1,26 +1,63 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Message, getConversationMessages, sendMessage } from '../api/chat';
+import { Message, getConversationMessages } from '../api/chat';
 import { useAuth } from '../contexts/AuthContext';
+import io, { Socket } from 'socket.io-client';
 
 export function Chat() {
   const { chatId } = useParams<{ chatId: string }>();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const { user } = useAuth();
+  const socketRef = useRef<Socket | null>(null);
 
   useEffect(() => {
     if (chatId) {
       getConversationMessages(chatId).then(setMessages);
+
+      const accessToken = localStorage.getItem('accessToken');
+      // Initialize socket connection
+      const socketUrl = `wss://${window.location.hostname.replace('5173', '3000')}`;
+      socketRef.current = io(socketUrl, {
+        transports: ['websocket'], // Force WebSocket connection
+        auth: {
+          token: accessToken,
+        },
+      });
+
+      // Join the chat room
+      socketRef.current.emit('joinRoom', chatId);
+
+      // Listen for incoming messages
+      socketRef.current.on('receiveMessage', (message: Message) => {
+        setMessages((prevMessages) => [message, ...prevMessages]);
+      });
+
+      // Clean up on component unmount
+      return () => {
+        socketRef.current?.disconnect();
+      };
     }
   }, [chatId]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newMessage.trim() && chatId && user) {
-      const sentMessage = await sendMessage(chatId, newMessage);
-      setMessages((prevMessages) => [sentMessage, ...prevMessages]);
+    if (newMessage.trim() && chatId && user && socketRef.current) {
+      const messageData = {
+        content: newMessage,
+        sender: user._id,
+        conversation: chatId,
+      };
+      
+      // Emit the message to the server
+      socketRef.current.emit('sendMessage', {
+        roomId: chatId,
+        message: messageData,
+      });
+
+      // Optimistically update the UI
+      setMessages((prevMessages) => [{ ...messageData, _id: Date.now().toString(), sender: { _id: user._id, username: user.username, profile: user.profile } }, ...prevMessages]);
       setNewMessage('');
     }
   };
