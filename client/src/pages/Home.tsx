@@ -271,10 +271,6 @@ export const Home: React.FC = () => {
       <ActionSheet
         isOpen={showActionSheet}
         onClose={() => setShowActionSheet(false)}
-        onShare={() => {
-          if (selectedPostId) handleShare(selectedPostId);
-          setShowActionSheet(false);
-        }}
         onMessage={handleMessageAuthor}
       />
 

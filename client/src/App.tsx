@@ -12,10 +12,14 @@ import { Profile } from "./pages/Profile"
 import { PostDetail } from "./pages/PostDetail"
 import { ProfileSettings } from "./pages/ProfileSettings"
 import { BlankPage } from "./pages/BlankPage"
+import { Messages } from "./pages/Messages"
+import { Chat } from "./pages/Chat"
+import { ChatProvider } from "./contexts/ChatContext"
 
 function App() {
   return (
   <AuthProvider>
+   <ChatProvider>
     <ThemeProvider defaultTheme="dark" storageKey="ui-theme">
       <Router>
         <Routes>
@@ -23,7 +27,9 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/" element={<ProtectedRoute><Layout><Home /></Layout></ProtectedRoute>} />
           <Route path="/compose" element={<ProtectedRoute><Layout><CreatePost /></Layout></ProtectedRoute>} />
-                    <Route path="/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />
+          <Route path="/inbox" element={<ProtectedRoute><Layout><Messages /></Layout></ProtectedRoute>} />
+          <Route path="/chat/:chatId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
           <Route path="/post/:postId" element={<ProtectedRoute><Layout><PostDetail /></Layout></ProtectedRoute>} />
           <Route path="/settings/profile" element={<ProtectedRoute><Layout><ProfileSettings /></Layout></ProtectedRoute>} />
           <Route path="*" element={<BlankPage />} />
@@ -31,6 +37,7 @@ function App() {
       </Router>
       <Toaster />
     </ThemeProvider>
+   </ChatProvider>
   </AuthProvider>
   )
 }

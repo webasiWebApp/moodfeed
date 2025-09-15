@@ -88,6 +88,18 @@ class PostService {
     return post;
   }
 
+  static async getPostComments(postId) {
+    const post = await Post.findById(postId)
+      .populate('comments.author', 'username displayName avatar')
+      .lean();
+
+    if (!post) {
+      throw new Error('Post not found');
+    }
+
+    return post.comments;
+  }
+
   static async likePost(postId, userId) {
     const post = await Post.findById(postId);
     if (!post) {
@@ -103,7 +115,7 @@ class PostService {
 
     await post.save();
     return {
-      likes: post.likes.length,
+      likesCount: post.likes.length,
       isLiked: post.likes.includes(userId)
     };
   }

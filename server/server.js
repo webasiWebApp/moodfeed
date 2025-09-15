@@ -20,7 +20,8 @@ const app = express();
 const server = require('http').createServer(app);
 const port = process.env.PORT || 3000;
 // Initialize Socket.IO
-require('./services/socketService').initialize(server);
+const socketService = require('./services/socketService');
+socketService.initialize(server);
 // Pretty-print JSON responses
 app.enable('json spaces');
 // We want to be consistent with URL paths, so we enable strict routing

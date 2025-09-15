@@ -29,7 +29,7 @@ export interface Conversation {
 // Get all conversations for the current user
 export const getConversations = async (): Promise<Conversation[]> => {
   try {
-    const response = await api.get('/chat/conversations');
+    const response = await api.get('/api/chat/conversations');
     return response.data;
   } catch (error) {
     if (error instanceof Error) {
@@ -42,7 +42,7 @@ export const getConversations = async (): Promise<Conversation[]> => {
 // Get messages for a specific conversation
 export const getMessages = async (conversationId: string): Promise<Message[]> => {
   try {
-    const response = await api.get(`/chat/conversations/${conversationId}/messages`);
+    const response = await api.get(`/api/chat/conversations/${conversationId}/messages`);
     return response.data;
   } catch (error) {
     if (error instanceof Error) {
@@ -55,7 +55,7 @@ export const getMessages = async (conversationId: string): Promise<Message[]> =>
 // Start a new conversation or get existing one
 export const startConversation = async (userId: string): Promise<Conversation> => {
   try {
-    const response = await api.post('/chat/conversations', { userId });
+    const response = await api.post('/api/chat/conversations', { userId });
     return response.data;
   } catch (error) {
     if (error instanceof Error) {
@@ -68,7 +68,7 @@ export const startConversation = async (userId: string): Promise<Conversation> =
 // Send a message
 export const sendMessage = async (conversationId: string, content: string): Promise<Message> => {
   try {
-    const response = await api.post(`/chat/conversations/${conversationId}/messages`, { content });
+    const response = await api.post(`/api/chat/conversations/${conversationId}/messages`, { content });
     return response.data;
   } catch (error) {
     if (error instanceof Error) {
@@ -81,7 +81,7 @@ export const sendMessage = async (conversationId: string, content: string): Prom
 // Mark conversation messages as read
 export const markConversationAsRead = async (conversationId: string): Promise<void> => {
   try {
-    await api.post(`/chat/conversations/${conversationId}/read`);
+    await api.post(`/api/chat/conversations/${conversationId}/read`);
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(error.message);

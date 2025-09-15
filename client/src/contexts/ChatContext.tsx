@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import socketIOClient from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 
-type SocketClient = ReturnType<typeof socketIOClient>;
+type SocketClient = Socket;
 
 interface ChatContextType {
   socket: SocketClient | null;
@@ -29,7 +29,7 @@ export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
     const token = localStorage.getItem('accessToken');
     if (!token) return;
 
-    const socketInstance = socketIOClient('http://localhost:3000', {
+    const socketInstance = io('http://localhost:3000', {
       auth: { token }
     });
 

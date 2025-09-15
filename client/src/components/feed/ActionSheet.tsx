@@ -1,19 +1,17 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Share, MessageCircle, X } from 'lucide-react';
+import { MessageCircle, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface ActionSheetProps {
   isOpen: boolean;
   onClose: () => void;
-  onShare: () => void;
   onMessage: () => void;
 }
 
 export const ActionSheet: React.FC<ActionSheetProps> = ({
   isOpen,
   onClose,
-  onShare,
   onMessage
 }) => {
   return (
@@ -44,14 +42,12 @@ export const ActionSheet: React.FC<ActionSheetProps> = ({
             <div className="space-y-3">
               <motion.button
                 onClick={onMessage}
-                className="w-full flex items-center space-x-4 p-4 pb-32 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                className="w-full flex items-center space-x-4 p-4 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
                 whileTap={{ scale: 0.95 }}
               >
                 <MessageCircle className="w-6 h-6 text-black" />
                 <span className="text-black font-medium">Drop a message</span>
               </motion.button>
-              
-              
             </div>
           </motion.div>
         </>
