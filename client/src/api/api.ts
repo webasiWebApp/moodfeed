@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import JSONbig from 'json-bigint';
 
 // Create axios instance with default config

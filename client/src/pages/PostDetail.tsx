@@ -29,7 +29,7 @@ export const PostDetail: React.FC = () => {
     
     try {
       console.log('Loading comments for post:', postId);
-      const response = await getPostComments(postId) as any;
+      const response = await getPostComments(postId) as { comments: Comment[] };
       setComments(response.comments);
     } catch (error) {
       console.error('Error loading comments:', error);
@@ -48,7 +48,7 @@ export const PostDetail: React.FC = () => {
     
     setSubmitting(true);
     try {
-      const response = await addComment(postId, newComment.trim()) as any;
+      const response = await addComment(postId, newComment.trim()) as { comment: Comment };
       setComments(prev => [...prev, response.comment]);
       setNewComment('');
       toast({

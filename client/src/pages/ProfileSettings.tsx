@@ -54,11 +54,11 @@ export const ProfileSettings: React.FC = () => {
       setSelectedMood(mood);
       setValue('displayName', displayName);
       setValue('bio', bio);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error loading profile:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Failed to load profile',
         variant: "destructive"
       });
     } finally {
@@ -83,11 +83,11 @@ export const ProfileSettings: React.FC = () => {
         description: "Profile updated successfully"
       });
       navigate('/profile');
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error updating profile:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Failed to update profile',
         variant: "destructive"
       });
     } finally {

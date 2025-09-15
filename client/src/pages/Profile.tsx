@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { Settings, Grid, Heart, MessageCircle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { getCurrentUser, User } from '@/api/users';
 import { useToast } from '@/hooks/useToast';
 import { useNavigate } from 'react-router-dom';
@@ -24,11 +23,11 @@ export const Profile: React.FC = () => {
       const response = await getCurrentUser();
       console.log('User profile loaded:', response.user);
       setUser(response.user);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error loading profile:', error);
       toast({
         title: "Error",
-        description: error.message,
+        description: error instanceof Error ? error.message : 'Failed to load profile',
         variant: "destructive"
       });
     } finally {
