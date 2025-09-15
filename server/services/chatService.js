@@ -1,88 +1,65 @@
+
 const Message = require('../models/Message');
 const Conversation = require('../models/Conversation');
-const User = require('../models/User');
-const mongoose = require('mongoose');
 
 class ChatService {
-  // Start or get existing conversation
-  async getOrCreateConversation(userIds) {
-    let conversation = await Conversation.findOne({
-      participants: { $all: userIds }
-    });
-
-    if (!conversation) {
-      conversation = await Conversation.create({
-        participants: userIds
-      });
+    async getConversations(userId) {
+        const conversations = await Conversation.find({ participants: userId })
+            .populate({
+                path: 'participants',
+                select: 'username _id',
+            })
+            .populate({
+                path: 'lastMessage',
+                populate: {
+                    path: 'sender',
+                    select: 'username _id',
+                },
+            })
+            .sort({ updatedAt: -1 });
+        return conversations;
     }
 
-    return conversation;
-  }
+    async startConversation(user, author) {
+        const existingConversation = await Conversation.findOne({
+            participants: { $all: [user._id, author._id] },
+        });
 
-  // Get user's conversations
-  async getUserConversations(userId) {
-    return await Conversation.find({ participants: userId })
-      .populate('participants', 'username email')
-      .populate('lastMessage')
-      .sort({ updatedAt: -1 });
-  }
+        if (existingConversation) {
+            return existingConversation;
+        }
 
-  // Get messages for a conversation
-  async getConversationMessages(conversationId, limit = 50) {
-    return await Message.find({ conversation: conversationId })
-      .populate('sender', 'username email')
-      .sort({ createdAt: -1 })
-      .limit(limit);
-  }
+        const newConversation = new Conversation({
+            participants: [user._id, author._id],
+        });
 
-  // Send a new message
-  async sendMessage(conversationId, senderId, content) {
-    console.log('ChatService.sendMessage called with:', { conversationId, senderId, content });
-    
-    if (!conversationId) {
-      throw new Error('Conversation ID is required');
-    }
-    if (!senderId) {
-      throw new Error('Sender ID is required');
-    }
-    if (!content) {
-      throw new Error('Message content is required');
+        await newConversation.save();
+        return newConversation.populate('participants', 'username _id');
     }
 
-    // Validate ObjectIds
-    if (!mongoose.Types.ObjectId.isValid(conversationId)) {
-      throw new Error('Invalid conversation ID');
+    async getConversationMessages(conversationId) {
+        const messages = await Message.find({ conversationId })
+            .populate('sender', 'username _id')
+            .sort({ createdAt: 'asc' }); 
+        return messages;
     }
-    if (!mongoose.Types.ObjectId.isValid(senderId)) {
-      throw new Error('Invalid sender ID');
+
+    async sendMessage(conversationId, senderId, content) {
+        const newMessage = new Message({
+            conversationId,
+            sender: senderId,
+            content,
+        });
+
+        await newMessage.save();
+
+        await Conversation.findByIdAndUpdate(conversationId, {
+            lastMessage: newMessage._id,
+            updatedAt: Date.now(), 
+        });
+
+        return newMessage.populate('sender', 'username _id');
     }
-
-    const message = await Message.create({
-      conversation: conversationId,
-      sender: senderId,
-      content
-    });
-
-    // Update conversation's last message
-    await Conversation.findByIdAndUpdate(conversationId, {
-      lastMessage: message._id,
-      updatedAt: new Date()
-    });
-
-    return message.populate('sender', 'username email');
-  }
-
-  // Mark messages as read
-  async markMessagesAsRead(conversationId, userId) {
-    await Message.updateMany(
-      {
-        conversation: conversationId,
-        sender: { $ne: userId },
-        read: false
-      },
-      { read: true }
-    );
-  }
 }
 
 module.exports = new ChatService();

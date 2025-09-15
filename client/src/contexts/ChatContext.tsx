@@ -1,84 +1,39 @@
-import { createContext, useContext, useEffect, useState } from 'react';
-import { io, Socket } from 'socket.io-client';
 
-type SocketClient = Socket;
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Conversation, getConversations } from '../api/chat';
+import { useAuth } from './AuthContext';
 
 interface ChatContextType {
-  socket: SocketClient | null;
-  currentConversation: string | null;
-  setCurrentConversation: (id: string | null) => void;
-  isConnected: boolean;
+  conversations: Conversation[];
+  loading: boolean;
 }
 
-const ChatContext = createContext<ChatContextType>({
-  socket: null,
-  currentConversation: null,
-  setCurrentConversation: () => {},
-  isConnected: false
-});
+const ChatContext = createContext<ChatContextType | undefined>(undefined);
 
-export const useChatContext = () => useContext(ChatContext);
-
-export const ChatProvider = ({ children }: { children: React.ReactNode }) => {
-  const [socket, setSocket] = useState<SocketClient | null>(null);
-  const [currentConversation, setCurrentConversation] = useState<string | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
+export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user } = useAuth();
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize socket connection
-    const token = localStorage.getItem('accessToken');
-    if (!token) return;
-
-    const socketInstance = io('http://localhost:3000', {
-      auth: { token }
-    });
-
-    socketInstance.on('connect', () => {
-      console.log('Connected to chat server');
-      setIsConnected(true);
-    });
-
-    socketInstance.on('disconnect', () => {
-      console.log('Disconnected from chat server');
-      setIsConnected(false);
-    });
-
-    socketInstance.on('error', (error: Error) => {
-      console.error('Socket error:', error);
-    });
-
-    setSocket(socketInstance);
-
-    return () => {
-      socketInstance.disconnect();
-    };
-  }, []);
-
-  // Handle conversation changes
-  useEffect(() => {
-    if (!socket) return;
-
-    if (currentConversation) {
-      socket.emit('join conversation', currentConversation);
+    if (user) {
+      getConversations(user._id)
+        .then(setConversations)
+        .finally(() => setLoading(false));
     }
-
-    return () => {
-      if (currentConversation) {
-        socket.emit('leave conversation', currentConversation);
-      }
-    };
-  }, [currentConversation, socket]);
+  }, [user]);
 
   return (
-    <ChatContext.Provider
-      value={{
-        socket,
-        currentConversation,
-        setCurrentConversation,
-        isConnected
-      }}
-    >
+    <ChatContext.Provider value={{ conversations, loading }}>
       {children}
     </ChatContext.Provider>
   );
+};
+
+export const useChat = () => {
+  const context = useContext(ChatContext);
+  if (!context) {
+    throw new Error('useChat must be used within a ChatProvider');
+  }
+  return context;
 };

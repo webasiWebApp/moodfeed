@@ -8,6 +8,9 @@ const path = require('path');
 const basicRoutes = require("./routes/index");
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
+const postRoutes = require('./routes/postRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 const { connectDB } = require("./config/database");
 const cors = require("cors");
 
@@ -19,9 +22,6 @@ if (!process.env.DATABASE_URL) {
 const app = express();
 const server = require('http').createServer(app);
 const port = process.env.PORT || 3000;
-// Initialize Socket.IO
-const socketService = require('./services/socketService');
-socketService.initialize(server);
 // Pretty-print JSON responses
 app.enable('json spaces');
 // We want to be consistent with URL paths, so we enable strict routing
@@ -48,15 +48,14 @@ app.on("error", (error) => {
   console.error(error.stack);
 });
 
-// Serve uploaded files
-app.use('/uploads', express.static(path.join(__dirname, 'userUploadedFilesForPost')));
-
 // API Routes
-const chatRoutes = require('./routes/chatRoutes');
-app.use('/api', basicRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/posts', postRoutes);
+app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api', basicRoutes);
+
 // Set up static file serving with proper CORS and caching
 app.use('/uploads', express.static(path.join(__dirname, 'userUploadedFilesForPost'), {
   setHeaders: (res, path) => {
@@ -70,9 +69,6 @@ app.use('/uploads', express.static(path.join(__dirname, 'userUploadedFilesForPos
     }
   }
 }));
-
-app.use('/api/posts', require('./routes/postRoutes'));
-app.use('/api/upload', require('./routes/uploadRoutes'));
 
 // If no routes handled the request, it's a 404
 app.use((req, res, next) => {
@@ -89,5 +85,3 @@ app.use((err, req, res, next) => {
 server.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
-
-// asdf1234

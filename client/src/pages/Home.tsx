@@ -170,11 +170,11 @@ export const Home: React.FC = () => {
     if (!selectedPostId) return;
 
     const post = posts.find(p => p._id === selectedPostId);
-    if (!post) return;
+    if (!post || !user) return;
 
-    const authorId = post.author._id;
+    const author = post.author;
 
-    if (authorId === user?._id) {
+    if (author._id === user?._id) {
       toast({
         title: "Can't message yourself",
         description: "You cannot start a conversation with yourself.",
@@ -184,7 +184,8 @@ export const Home: React.FC = () => {
     }
 
     try {
-      const conversation = await startConversation(authorId);
+       console.log(user, author);
+      const conversation = await startConversation(author);
       setShowActionSheet(false);
       navigate(`/chat/${conversation._id}`, { state: { isNewConversation: true } });
     } catch (error) {

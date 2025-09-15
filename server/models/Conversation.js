@@ -1,22 +1,13 @@
+
 const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
-const conversationSchema = new mongoose.Schema({
-  participants: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  }],
-  lastMessage: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Message'
+const conversationSchema = new Schema(
+  {
+    participants: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    lastMessage: { type: Schema.Types.ObjectId, ref: 'Message' },
   },
-  updatedAt: {
-    type: Date,
-    default: Date.now
-  }
-}, { timestamps: true });
-
-// Index for faster queries
-conversationSchema.index({ participants: 1 });
+  { timestamps: true }
+);
 
 module.exports = mongoose.model('Conversation', conversationSchema);

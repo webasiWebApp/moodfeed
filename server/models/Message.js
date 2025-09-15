@@ -1,28 +1,14 @@
+
 const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
-const messageSchema = new mongoose.Schema({
-  conversation: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Conversation',
-    required: true
+const messageSchema = new Schema(
+  {
+    conversationId: { type: Schema.Types.ObjectId, ref: 'Conversation' },
+    sender: { type: Schema.Types.ObjectId, ref: 'User' },
+    content: { type: String, required: true },
   },
-  sender: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
-  },
-  content: {
-    type: String,
-    required: true
-  },
-  read: {
-    type: Boolean,
-    default: false
-  }
-}, { timestamps: true });
-
-// Indexes for faster queries
-messageSchema.index({ conversation: 1, createdAt: -1 });
-messageSchema.index({ sender: 1 });
+  { timestamps: true }
+);
 
 module.exports = mongoose.model('Message', messageSchema);
