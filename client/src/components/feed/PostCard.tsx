@@ -1,0 +1,242 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Heart, MessageCircle, Share, MoreHorizontal } from 'lucide-react';
+import { motion, useAnimation, PanInfo } from 'framer-motion';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
+import { Post } from '@/api/posts';
+import { useToast } from '@/hooks/useToast';
+import { toggleLikePost } from '@/api/posts';
+import { formatDistanceToNow } from 'date-fns';
+
+interface PostCardProps {
+  post: Post;
+  onSwipeLeft: (postId: string) => void;
+  onSwipeRight: (postId: string) => void;
+  onLongPress: (postId: string) => void;
+  onComment: (postId: string) => void;
+  onShare: (postId: string) => void;
+  onSwipeVertical?: (direction: 'up' | 'down') => void;
+  isActive?: boolean;
+}
+
+export const PostCard: React.FC<PostCardProps> = ({
+  post,
+  onSwipeLeft,
+  onSwipeRight,
+  onLongPress,
+  onComment,
+  onShare,
+  onSwipeVertical,
+  isActive
+}) => {
+  const [isLiked, setIsLiked] = useState(post.isLiked);
+  const [likesCount, setLikesCount] = useState(post.likes);
+  const { toast } = useToast();
+  const cardRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const longPressTimer = useRef<NodeJS.Timeout>();
+  const controls = useAnimation();
+
+  useEffect(() => {
+    // Reset position when post becomes active
+    if (isActive) {
+      controls.start({ y: 0, transition: { duration: 0 } });
+    }
+  }, [isActive, controls]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (post.mediaType === 'video' && videoRef.current) {
+          if (entry.intersectionRatio >= 0.7) {
+            videoRef.current.play();
+          } else if (entry.intersectionRatio < 0.5) {
+            videoRef.current.pause();
+          }
+        }
+      },
+      { threshold: [0.5, 0.7] }
+    );
+
+    if (cardRef.current) {
+      observer.observe(cardRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [post.mediaType]);
+
+  const handleLike = async () => {
+    try {
+      const response = await toggleLikePost(post._id) as any;
+      setIsLiked(response.isLiked);
+      setLikesCount(response.likesCount);
+
+      // Trigger celebration animation
+      controls.start({
+        scale: [1, 1.2, 1],
+        transition: { duration: 0.3 }
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to like post",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handlePanEnd = (_event: any, info: PanInfo) => {
+    const threshold = 100;
+    
+    // Determine if the swipe is more horizontal or vertical
+    const isHorizontal = Math.abs(info.offset.x) > Math.abs(info.offset.y);
+    
+    if (isHorizontal && Math.abs(info.offset.x) > threshold) {
+      if (info.offset.x > 0) {
+        // Swiped right - open comments drawer
+        onSwipeRight(post._id);
+      } else {
+        // Swiped left - not for me
+        onSwipeLeft(post._id);
+      }
+    } else if (!isHorizontal && Math.abs(info.offset.y) > threshold) {
+      if (info.offset.y > 0) {
+        // Swiped down - previous post
+        onSwipeVertical?.('down');
+      } else {
+        // Swiped up - next post
+        onSwipeVertical?.('up');
+      }
+    }
+    
+    // Reset position
+    controls.start({ x: 0, y: 0, transition: { duration: 0.2 } });
+  };
+
+  const handleTouchStart = () => {
+    longPressTimer.current = setTimeout(() => {
+      onLongPress(post._id);
+    }, 600);
+  };
+
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+    }
+  };
+
+  return (
+    <motion.div
+      ref={cardRef}
+      className="w-full h-screen flex flex-col justify-center items-center px-4"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      animate={controls}
+      drag={true}
+      dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+      onPanEnd={handlePanEnd}
+      dragElastic={0.2}
+    >
+      <div className="w-full max-w-md glass-effect rounded-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center space-x-3">
+            <div className="relative">
+              <Avatar className="w-12 h-12 border-2 border-primary">
+                <AvatarImage src={post.author.avatar} alt={post.author.displayName} />
+                <AvatarFallback>{post.author.displayName[0]}</AvatarFallback>
+              </Avatar>
+              <span className="absolute -bottom-1 -right-1 text-lg">
+                {post.author.mood}
+              </span>
+            </div>
+            <div>
+              <h3 className="font-semibold text-white">{post.author.displayName}</h3>
+              <p className="text-sm text-muted-foreground">@{post.author.username}</p>
+            </div>
+          </div>
+          <Button variant="ghost" size="icon" className="text-white">
+            <MoreHorizontal className="w-5 h-5" />
+          </Button>
+        </div>
+
+        {/* Content */}
+        <div className="px-4 pb-3">
+          <p className="text-white leading-relaxed">{post.content}</p>
+        </div>
+
+        {/* Media */}
+        {post.mediaUrl && (
+          <div className="relative">
+            {post.mediaType === 'video' ? (
+              <video
+                ref={videoRef}
+                src={post.mediaUrl}
+                className="w-full h-80 object-cover"
+                loop
+                muted
+                playsInline
+              />
+            ) : (
+              <img
+                src={post.mediaUrl}
+                alt="Post content"
+                className="w-full h-80 object-cover"
+              />
+            )}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center space-x-6">
+            <motion.button
+              onClick={handleLike}
+              className="flex items-center space-x-2"
+              whileTap={{ scale: 0.9 }}
+            >
+              <Heart
+                className={`w-6 h-6 ${
+                  isLiked ? 'fill-red-500 text-red-500' : 'text-white'
+                }`}
+              />
+              <span className="text-white font-medium">{likesCount}</span>
+            </motion.button>
+
+            <motion.button
+              onClick={() => onComment(post._id)}
+              className="flex items-center space-x-2"
+              whileTap={{ scale: 0.9 }}
+            >
+              <MessageCircle className="w-6 h-6 text-white" />
+              <span className="text-white font-medium">{post.comments}</span>
+            </motion.button>
+
+            <motion.button
+              onClick={() => onShare(post._id)}
+              whileTap={{ scale: 0.9 }}
+            >
+              <Share className="w-6 h-6 text-white" />
+            </motion.button>
+          </div>
+
+          <span className="text-sm text-muted-foreground">
+            {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
+          </span>
+        </div>
+      </div>
+
+      {/* Swipe indicators */}
+      <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 flex space-x-4 text-white/50">
+        <div className="flex items-center space-x-1">
+          <span>←</span>
+          <span className="text-xs">Not for me</span>
+        </div>
+        <div className="flex items-center space-x-1">
+          <span className="text-xs">Quick comment</span>
+          <span>→</span>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
