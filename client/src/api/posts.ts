@@ -48,6 +48,21 @@ export const getFeedPosts = async (page: number = 1, limit: number = 10) => {
   }
 };
 
+// Description: Get a single post by its ID
+// Endpoint: GET /api/posts/:postId
+// Request: { postId: string }
+// Response: { post: Post }
+export const getPostById = async (postId: string) => {
+  console.log('Fetching post by ID:', postId);
+  try {
+    const response = await api.get(`/posts/${postId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching post by ID:', error);
+    throw error;
+  }
+};
+
 // Description: Like or unlike a post
 // Endpoint: POST /api/posts/:postId/like
 // Request: { postId: string }
