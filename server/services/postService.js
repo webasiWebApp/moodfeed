@@ -1,4 +1,5 @@
 const Post = require('../models/Post');
+const User = require('../models/User');
 
 class PostService {
   static async createPost(userId, postData) {
@@ -106,14 +107,29 @@ class PostService {
       throw new Error('Post not found');
     }
 
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
     const likeIndex = post.likes.indexOf(userId);
+    const userLikeIndex = user.likedPosts.indexOf(postId);
+
     if (likeIndex === -1) {
       post.likes.push(userId);
+      if (userLikeIndex === -1) {
+        user.likedPosts.push(postId);
+      }
     } else {
       post.likes.splice(likeIndex, 1);
+      if (userLikeIndex > -1) {
+        user.likedPosts.splice(userLikeIndex, 1);
+      }
     }
 
     await post.save();
+    await user.save();
+
     return {
       likesCount: post.likes.length,
       isLiked: post.likes.includes(userId)
@@ -136,6 +152,20 @@ class PostService {
     await Post.populate(newComment, { path: 'author', select: 'username displayName avatar' });
     
     return newComment;
+  }
+
+  static async notForMe(postId, userId) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (!user.notForMePosts.includes(postId)) {
+      user.notForMePosts.push(postId);
+      await user.save();
+    }
+
+    return { success: true };
   }
 
   static async deletePost(postId, userId) {

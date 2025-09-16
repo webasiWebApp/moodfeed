@@ -91,8 +91,11 @@ router.post('/:postId/comments', requireUser, (req, res, next) => {
 
 // Mark post as "not for me"
 router.post('/:postId/not-for-me', requireUser, (req, res, next) => {
-  // For now, just return success - this could be used for recommendation algorithms
-  res.json({ success: true });
+  PostService.notForMe(req.params.postId, req.user._id)
+    .then(() => {
+      res.json({ success: true });
+    })
+    .catch(next);
 });
 
 // Delete post

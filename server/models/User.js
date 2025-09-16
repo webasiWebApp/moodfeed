@@ -80,6 +80,14 @@ const schema = new mongoose.Schema({
     index: true,
     default: () => randomUUID(),
   },
+  likedPosts: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Post'
+  }],
+  notForMePosts: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Post'
+  }],
 }, {
   versionKey: false,
 });
