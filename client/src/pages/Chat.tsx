@@ -1,9 +1,14 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { ArrowLeft, Send } from 'lucide-react';
 import { Message, getConversationMessages } from '../api/chat';
 import { useAuth } from '../contexts/AuthContext';
 import io, { Socket } from 'socket.io-client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function Chat() {
   const { chatId } = useParams<{ chatId: string }>();
@@ -11,29 +16,31 @@ export function Chat() {
   const [newMessage, setNewMessage] = useState('');
   const { user } = useAuth();
   const socketRef = useRef<Socket | null>(null);
+  const navigate = useNavigate();
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   useEffect(() => {
     if (chatId) {
       getConversationMessages(chatId).then(setMessages);
 
       const accessToken = localStorage.getItem('accessToken');
-      // Initialize socket connection
       socketRef.current = io({
-        transports: ['polling','websocket'], // Force WebSocket connection
+        transports: ['polling', 'websocket'],
         auth: {
           token: accessToken,
         },
       });
 
-      // Join the chat room
       socketRef.current.emit('joinRoom', chatId);
 
-      // Listen for incoming messages
       socketRef.current.on('receiveMessage', (message: Message) => {
-        setMessages((prevMessages) => [message, ...prevMessages]);
+        setMessages((prevMessages) => [...prevMessages, message]);
       });
 
-      // Clean up on component unmount
       return () => {
         socketRef.current?.disconnect();
       };
@@ -49,41 +56,102 @@ export function Chat() {
         conversation: chatId,
       };
       
-      // Emit the message to the server
       socketRef.current.emit('sendMessage', {
         roomId: chatId,
         message: messageData,
       });
 
       // Optimistically update the UI
-      setMessages((prevMessages) => [{ ...messageData, _id: Date.now().toString(), sender: { _id: user._id, username: user.username, profile: user.profile } }, ...prevMessages]);
+      const optimisticMessage: Message = {
+        _id: Date.now().toString(),
+        content: newMessage,
+        sender: {
+          _id: user._id,
+          username: user.username,
+          profile: user.profile,
+        },
+        conversation: chatId,
+        createdAt: new Date().toISOString(),
+      };
+      setMessages((prevMessages) => [...prevMessages, optimisticMessage]);
       setNewMessage('');
     }
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-4">
-        {messages.map((message) => (
-          <div key={message._id} className={`flex ${message.sender._id === user?._id ? 'justify-end' : 'justify-start'} mb-2`}>
-            <div className={`rounded-lg px-4 py-2 ${message.sender._id === user?._id ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800'}`}>
-              <p className="text-sm">{message.content}</p>
-            </div>
+    <div className="min-h-screen gradient-bg flex flex-col">
+      <div className="container mx-auto px-4 py-6 flex-1 flex flex-col">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between mb-4"
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate('/messages')}
+            className="text-white"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="text-xl font-bold text-white">Chat</h1>
+          <div className="w-10" />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex-1 flex flex-col glass-effect p-4 rounded-xl overflow-hidden"
+        >
+          <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+            {messages.map((message) => (
+              <motion.div
+                key={message._id}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className={`flex items-end gap-2 ${message.sender._id === user?._id ? 'justify-end' : 'justify-start'}`}
+              >
+                {message.sender._id !== user?._id && (
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src={message.sender.profile?.avatarUrl} />
+                    <AvatarFallback>{message.sender.username.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                )}
+                <div
+                  className={`max-w-xs md:max-w-md px-4 py-2 rounded-2xl ${
+                    message.sender._id === user?._id
+                      ? 'bg-primary text-primary-foreground rounded-br-none'
+                      : 'bg-white/10 text-white rounded-bl-none'
+                  }`}
+                >
+                  <p className="text-sm">{message.content}</p>
+                </div>
+              </motion.div>
+            ))}
+            <div ref={messagesEndRef} />
           </div>
-        ))}
+
+          <form onSubmit={handleSendMessage} className="mt-4">
+            <div className="flex items-center gap-2">
+              <Input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                className="flex-1 bg-transparent border-white/20 text-white placeholder:text-white/50 rounded-full px-4 py-2"
+                placeholder="Type a message..."
+              />
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                type="submit"
+                className="p-2 bg-primary rounded-full text-white"
+              >
+                <Send className="w-5 h-5" />
+              </motion.button>
+            </div>
+          </form>
+        </motion.div>
       </div>
-      <form onSubmit={handleSendMessage} className="p-4 border-t">
-        <div className="flex">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            className="flex-1 border rounded-full px-4 py-2"
-            placeholder="Type a message..."
-          />
-          <button type="submit" className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-full">Send</button>
-        </div>
-      </form>
     </div>
   );
 }
