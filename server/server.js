@@ -33,7 +33,12 @@ const port = process.env.PORT || 3000;
 const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
 
 const corsOptions = {
-  origin: clientUrl,
+  origin: [
+    clientUrl,
+    "https://5173-firebase-moodfeed-1757952544072.cluster-owzhzna3l5cj6tredjpnwucna4.cloudworkstations.dev",
+    "https://3000-firebase-moodfeed-1757952544072.cluster-owzhzna3l5cj6tredjpnwucna4.cloudworkstations.dev",
+    "https://9000-firebase-moodfeed-1757952544072.cluster-owzhzna3l5cj6tredjpnwucna4.cloudworkstations.dev"
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -85,9 +90,16 @@ app.use((err, req, res, next) => {
 
 const io = new Server(server, {
   cors: {
-    origin: clientUrl,
-    methods: ["GET", "POST"]
-  }
+    origin: [
+      "https://5173-firebase-moodfeed-1757952544072.cluster-owzhzna3l5cj6tredjpnwucna4.cloudworkstations.dev",
+      "https://3000-firebase-moodfeed-1757952544072.cluster-owzhzna3l5cj6tredjpnwucna4.cloudworkstations.dev",
+      "https://9000-firebase-moodfeed-1757952544072.cluster-owzhzna3l5cj6tredjpnwucna4.cloudworkstations.dev"
+    ],
+    methods: ["GET", "POST"],
+    credentials: true,
+    allowedHeaders: ["*"]
+  },
+  allowEIO3: true
 });
 
 io.use(async (socket, next) => {
@@ -121,6 +133,7 @@ io.on('connection', (socket) => {
       const { roomId, message } = data;
       const savedMessage = await chatService.sendMessage(roomId, socket.user._id, message.content);
       io.to(roomId).emit('receiveMessage', savedMessage);
+      console.log(savedMessage);
     } catch (error) {
       console.error('Error handling message:', error);
     }

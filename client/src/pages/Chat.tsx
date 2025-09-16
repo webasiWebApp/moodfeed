@@ -18,9 +18,8 @@ export function Chat() {
 
       const accessToken = localStorage.getItem('accessToken');
       // Initialize socket connection
-      const socketUrl = `wss://${window.location.hostname.replace('5173', '3000')}`;
-      socketRef.current = io(socketUrl, {
-        transports: ['websocket'], // Force WebSocket connection
+      socketRef.current = io({
+        transports: ['polling','websocket'], // Force WebSocket connection
         auth: {
           token: accessToken,
         },
