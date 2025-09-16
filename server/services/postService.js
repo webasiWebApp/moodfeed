@@ -1,5 +1,6 @@
 const Post = require('../models/Post');
 const User = require('../models/User');
+const RecommendationEngine = require('./recommendationEngine');
 
 class PostService {
   static async createPost(userId, postData) {
@@ -35,13 +36,26 @@ class PostService {
   }
 
   static async getFeedPosts(userId, page = 1, limit = 10) {
-    // Validate and sanitize input
-    page = Math.max(1, Math.min(50, parseInt(page) || 1)); // Limit to 50 pages
-    limit = Math.max(1, Math.min(50, parseInt(limit) || 10)); // Limit to 50 items per page
+    // Use the recommendation engine for the first page
     
+    if (page === 1) {
+      try {
+        const recommendedPosts = await RecommendationEngine.getRecommendedPosts(userId);
+        return { posts: recommendedPosts, hasMore: recommendedPosts.length > 0 };
+      } catch (error) {
+        console.error('Error getting recommendations, falling back to chronological feed:', error);
+        // Fallback to the original chronological feed if recommendations fail
+        return this.getChronologicalFeed(userId, page, limit);
+      }
+    } else {
+      // For subsequent pages, return a standard chronological feed
+      return this.getChronologicalFeed(userId, page, limit);
+    }
+  }
+
+  static async getChronologicalFeed(userId, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
-    
-    // Store userId for isLiked virtual
+
     const posts = await Post.find()
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -53,22 +67,16 @@ class PostService {
       return { posts: [], hasMore: false };
     }
 
-    // Add isLiked field and clean up response
+    const user = await User.findById(userId).select('likedPosts').lean();
+    const likedPostIds = new Set(user ? user.likedPosts.map(p => p.toString()) : []);
+
     posts.forEach(post => {
-      post.isLiked = post.likes.includes(userId);
-      post.likes = post.likes.length;
-      post.comments = post.comments.length;
+      post.isLiked = likedPostIds.has(post._id.toString());
+      post.likes = Array.isArray(post.likes) ? post.likes.length : 0;
+      post.comments = Array.isArray(post.comments) ? post.comments.length : 0;
     });
-
-    // Check if there are more posts, but limit the count query
-    const nextPage = await Post.find()
-      .sort({ createdAt: -1 })
-      .skip(skip + limit)
-      .limit(1)
-      .select('_id')
-      .lean();
-
-    const hasMore = nextPage.length > 0;
+    
+    const hasMore = (await Post.countDocuments({ createdAt: { $lt: posts[posts.length - 1].createdAt } })) > 0;
 
     return { posts, hasMore };
   }
