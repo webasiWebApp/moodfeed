@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Heart, MessageCircle, Share, MoreHorizontal } from 'lucide-react';
+import { Heart, MessageCircle, Share, MoreHorizontal, Play, Pause, Volume2, VolumeX } from 'lucide-react';
 import { motion, useAnimation, PanInfo } from 'framer-motion';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -31,6 +31,8 @@ export const PostCard: React.FC<PostCardProps> = ({
 }) => {
   const [isLiked, setIsLiked] = useState(post.isLiked);
   const [likesCount, setLikesCount] = useState(post.likes);
+  const [isPaused, setIsPaused] = useState(true);
+  const [isMuted, setIsMuted] = useState(true);
   const { toast } = useToast();
   const cardRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -50,8 +52,10 @@ export const PostCard: React.FC<PostCardProps> = ({
         if (post.mediaType === 'video' && videoRef.current) {
           if (entry.intersectionRatio >= 0.7) {
             videoRef.current.play();
+            setIsPaused(false);
           } else if (entry.intersectionRatio < 0.5) {
             videoRef.current.pause();
+            setIsPaused(true);
           }
         }
       },
@@ -64,6 +68,26 @@ export const PostCard: React.FC<PostCardProps> = ({
 
     return () => observer.disconnect();
   }, [post.mediaType]);
+
+  const togglePlay = () => {
+    if (videoRef.current) {
+      if (videoRef.current.paused) {
+        videoRef.current.play();
+        setIsPaused(false);
+      } else {
+        videoRef.current.pause();
+        setIsPaused(true);
+      }
+    }
+  };
+
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (videoRef.current) {
+      videoRef.current.muted = !videoRef.current.muted;
+      setIsMuted(videoRef.current.muted);
+    }
+  };
 
   const handleLike = async () => {
     try {
@@ -167,16 +191,30 @@ export const PostCard: React.FC<PostCardProps> = ({
 
         {/* Media */}
         {post.mediaUrl && (
-          <div className="relative">
+          <div className="relative" onClick={togglePlay}>
             {post.mediaType === 'video' ? (
-              <video
-                ref={videoRef}
-                src={post.mediaUrl}
-                className="w-full h-80 object-cover"
-                loop
-                muted
-                playsInline
-              />
+              <>
+                <video
+                  ref={videoRef}
+                  src={post.mediaUrl}
+                  className="w-full h-80 object-cover"
+                  loop
+                  muted={isMuted}
+                  playsInline
+                />
+                {isPaused && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+                    <Button variant="ghost" size="icon">
+                      <Play className="w-12 h-12 text-white" />
+                    </Button>
+                  </div>
+                )}
+                <div className="absolute bottom-2 right-2">
+                  <Button onClick={toggleMute} variant="ghost" size="icon" className="text-white">
+                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                  </Button>
+                </div>
+              </>
             ) : (
               <img
                 src={post.mediaUrl}

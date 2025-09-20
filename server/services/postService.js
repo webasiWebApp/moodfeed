@@ -2,6 +2,25 @@ const Post = require('../models/Post');
 const User = require('../models/User');
 const RecommendationEngine = require('./recommendationEngine');
 
+const transformPost = (post, userId) => {
+    const postObject = post.toObject ? post.toObject() : { ...post };
+
+    const likedPostIds = new Set(userId ? user.likedPosts.map(p => p.toString()) : []);
+
+    // Check if mediaUrl needs prefixing
+    if (postObject.mediaUrl && !postObject.mediaUrl.startsWith('http')) {
+        postObject.mediaUrl = `http://localhost:3000/uploads/${postObject.mediaUrl.split('/').pop()}`;
+    }
+
+    return {
+        ...postObject,
+        isLiked: likedPostIds.has(postObject._id.toString()),
+        likes: Array.isArray(postObject.likes) ? postObject.likes.length : 0,
+        comments: Array.isArray(postObject.comments) ? postObject.comments.length : 0,
+    };
+};
+
+
 class PostService {
   static async createPost(userId, postData) {
     try {
@@ -36,24 +55,20 @@ class PostService {
   }
 
   static async getFeedPosts(userId, page = 1, limit = 10) {
-    // Use the recommendation engine for the first page
-    
     if (page === 1) {
-      try {
-       
-        const recommendedPosts = await RecommendationEngine.getRecommendedPosts(userId);
-       
-        return { posts: recommendedPosts, hasMore: recommendedPosts.length > 0 };
-      } catch (error) {
-        console.error('Error getting recommendations, falling back to chronological feed:', error);
-        // Fallback to the original chronological feed if recommendations fail
-        return this.getChronologicalFeed(userId, page, limit);
-      }
+        try {
+            const recommendedPosts = await RecommendationEngine.getRecommendedPosts(userId);
+            const user = await User.findById(userId).select('likedPosts').lean();
+            const transformedPosts = recommendedPosts.map(post => transformPost(post, user));
+            return { posts: transformedPosts, hasMore: recommendedPosts.length > 0 };
+        } catch (error) {
+            console.error('Error getting recommendations, falling back to chronological feed:', error);
+            return this.getChronologicalFeed(userId, page, limit);
+        }
     } else {
-      // For subsequent pages, return a standard chronological feed
-      return this.getChronologicalFeed(userId, page, limit);
+        return this.getChronologicalFeed(userId, page, limit);
     }
-  }
+}
 
   static async getChronologicalFeed(userId, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
@@ -76,6 +91,9 @@ class PostService {
       post.isLiked = likedPostIds.has(post._id.toString());
       post.likes = Array.isArray(post.likes) ? post.likes.length : 0;
       post.comments = Array.isArray(post.comments) ? post.comments.length : 0;
+       if (post.mediaUrl && !post.mediaUrl.startsWith('http')) {
+        post.mediaUrl = `http://localhost:3000/uploads/${post.mediaUrl.split('/').pop()}`;
+    }
     });
     
     const hasMore = (await Post.countDocuments({ createdAt: { $lt: posts[posts.length - 1].createdAt } })) > 0;
