@@ -128,7 +128,7 @@ export const PostCard: React.FC<PostCardProps> = ({
   return (
     <motion.div
       ref={cardRef}
-      className="w-full h-screen flex flex-col justify-center items-center px-4"
+      className="w-full flex flex-col justify-center items-center px-4"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       animate={controls}
