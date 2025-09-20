@@ -52,9 +52,11 @@ You are a social media recommendation engine. Your task is to analyze user prefe
 `;
 
     let text;
+    
     try {
       const result = await this.model.generateContent(prompt);
       const response = await result.response;
+
       text = response.text();
       // The response is a JSON string, so we can parse it directly.
       return JSON.parse(text);

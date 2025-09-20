@@ -40,7 +40,9 @@ class PostService {
     
     if (page === 1) {
       try {
+       
         const recommendedPosts = await RecommendationEngine.getRecommendedPosts(userId);
+       
         return { posts: recommendedPosts, hasMore: recommendedPosts.length > 0 };
       } catch (error) {
         console.error('Error getting recommendations, falling back to chronological feed:', error);

@@ -5,7 +5,6 @@ const LlmService = require('./llmService');
 class RecommendationEngine {
   async getRecommendedPosts(userId) {
     // 1. Get user's liked and disliked posts
-    
     const user = await User.findById(userId).populate('likedPosts notForMePosts');
     if (!user) {
       throw new Error('User not found');
@@ -31,7 +30,7 @@ class RecommendationEngine {
       ...user.notForMePosts.map(p => p._id)
     ];
 
-    const candidatePosts = await Post.find({
+    let candidatePosts = await Post.find({
       _id: { $nin: excludedPostIds },
       author: { $ne: userId } // Exclude user's own posts
     })
@@ -41,24 +40,38 @@ class RecommendationEngine {
       .lean();
 
     if (candidatePosts.length === 0) {
+        console.log('Initial query returned no candidate posts. Falling back to recent posts.');
+        candidatePosts = await Post.find({})
+            .sort({ createdAt: -1 })
+            .limit(20)
+            .populate('author', 'username')
+            .lean();
+    }
+
+    if (candidatePosts.length === 0) {
       return [];
     }
-    
-    const candidatePostsForLlm = candidatePosts.map(post => ({
+
+   
+
+    const candidatePostsForLlm = candidatePosts.filter(post => post.author).map(post => ({
       post_id: post._id,
       author_id: post.author._id,
       content: post.content,
       mood: post.mood,
     }));
 
+ 
+
     // 3. Get recommendations from LLM
     try {
-      
       const recommendedPostIds = await LlmService.generateRecommendations(
         likedPosts,
         dislikedPosts,
         candidatePostsForLlm
       );
+
+      console.log(recommendedPostIds);
 
       if (!recommendedPostIds || recommendedPostIds.length === 0) {
         // Fallback to most recent posts if no recommendations
