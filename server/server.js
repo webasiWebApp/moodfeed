@@ -17,6 +17,7 @@ const userRoutes = require("./routes/userRoutes");
 const postRoutes = require('./routes/postRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const chatRoutes = require('./routes/chatRoutes');
+const videoRoutes = require('./routes/videoRoutes');
 const chatService = require('./services/chatService');
 const { connectDB } = require("./config/database");
 const cors = require("cors");
@@ -64,6 +65,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/videos', videoRoutes);
 app.use('/api', basicRoutes);
 
 app.use('/uploads', express.static(path.join(__dirname, 'userUploadedFilesForPost'), {

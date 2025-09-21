@@ -2,10 +2,10 @@ const Post = require('../models/Post');
 const User = require('../models/User');
 const RecommendationEngine = require('./recommendationEngine');
 
-const transformPost = (post, userId) => {
+const transformPost = (post, user) => {
     const postObject = post.toObject ? post.toObject() : { ...post };
 
-    const likedPostIds = new Set(userId ? user.likedPosts.map(p => p.toString()) : []);
+    const likedPostIds = new Set(user ? user.likedPosts.map(p => p.toString()) : []);
 
     // Check if mediaUrl needs prefixing
     if (postObject.mediaUrl && !postObject.mediaUrl.startsWith('http')) {
