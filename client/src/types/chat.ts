@@ -4,6 +4,8 @@ export interface Conversation {
   _id: string;
   participants: User[];
   lastMessage?: Message;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Message {
@@ -11,5 +13,6 @@ export interface Message {
   conversation: string;
   sender: User;
   content: string;
-  timestamp: string;
+  createdAt: string;
+  updatedAt: string;
 }

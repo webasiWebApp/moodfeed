@@ -1,77 +1,100 @@
-import React from 'react';
-import { Button } from './ui/button';
-import { Phone, PhoneOff, Mic, MicOff, Video, VideoOff } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-  DialogClose
-} from './ui/dialog';
-import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-
+import React, { useRef, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Phone, Mic, MicOff, Video, VideoOff } from 'lucide-react';
+import { User } from '@/types/user';
 
 interface CallComponentProps {
-    callStatus: 'calling' | 'active' | 'ended';
-    isMuted: boolean;
-    isVideoEnabled: boolean;
-    onEndCall: () => void;
-    onToggleMute: () => void;
-    onToggleVideo: () => void;
-    participant: {
-        username: string;
-        profile: {
-            avatarUrl: string;
-        }
-    }
+  participant: User | null;
+  callStatus: 'calling' | 'active' | 'ended';
+  isMuted: boolean;
+  isVideoEnabled: boolean;
+  localStream: MediaStream | null;
+  remoteStream: MediaStream | null;
+  onToggleMute: () => void;
+  onToggleVideo: () => void;
+  onEndCall: () => void;
 }
 
-const CallComponent: React.FC<CallComponentProps> = ({
-    callStatus,
-    isMuted,
-    isVideoEnabled,
-    onEndCall,
-    onToggleMute,
-    onToggleVideo,
-    participant
+export const CallComponent: React.FC<CallComponentProps> = ({
+  participant,
+  callStatus,
+  isMuted,
+  isVideoEnabled,
+  localStream,
+  remoteStream,
+  onToggleMute,
+  onToggleVideo,
+  onEndCall,
 }) => {
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
-    if (callStatus === 'ended') {
-        return (
-            <div className="flex flex-col items-center justify-center h-full bg-black/80 text-white p-8 rounded-lg">
-                <h2 className="text-2xl font-bold mb-4">Call Ended</h2>
-                <Button onClick={onEndCall}>Close</Button>
-            </div>
-        )
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
     }
+  }, [localStream]);
 
-    return (
-        <div className="flex flex-col items-center justify-between h-full bg-black/80 text-white p-8 rounded-lg">
-            <div className="flex flex-col items-center">
-                <Avatar className="w-24 h-24 border-4 border-primary mb-4">
-                    <AvatarImage src={participant?.profile?.avatarUrl} />
-                    <AvatarFallback>{participant?.username.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <h2 className="text-2xl font-bold">{participant?.username}</h2>
-                <p className="text-lg text-white/70">{callStatus === 'calling' ? 'Calling...' : 'In Call'}</p>
-            </div>
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+    }
+  }, [remoteStream]);
 
-            <div className="flex items-center space-x-4">
-                <Button onClick={onToggleMute} variant="outline" className="bg-white/10 border-none rounded-full w-16 h-16">
-                    {isMuted ? <MicOff size={24} /> : <Mic size={24} />}
-                </Button>
-                <Button onClick={onToggleVideo} variant="outline" className="bg-white/10 border-none rounded-full w-16 h-16">
-                    {isVideoEnabled ? <Video size={24} /> : <VideoOff size={24} />}
-                </Button>
-                <Button onClick={onEndCall} variant="destructive" className="rounded-full w-16 h-16">
-                    <PhoneOff size={24} />
-                </Button>
-            </div>
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex flex-col items-center justify-center">
+      <div className="relative w-full h-full flex items-center justify-center">
+        {/* Remote Video */}
+        <video
+          ref={remoteVideoRef}
+          autoPlay
+          playsInline
+          className="w-full h-full object-cover"
+        />
+
+        {/* Local Video */}
+        <div className="absolute top-4 right-4 w-48 h-32 bg-gray-800 border-2 border-gray-600 rounded-lg overflow-hidden">
+          <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover"
+          />
         </div>
-    )
-}
 
-export default CallComponent;
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-4">
+          <Button
+            variant={isMuted ? 'destructive' : 'secondary'}
+            size="icon"
+            className="rounded-full w-16 h-16"
+            onClick={onToggleMute}
+          >
+            {isMuted ? <MicOff /> : <Mic />}
+          </Button>
+          <Button
+            variant="destructive"
+            size="icon"
+            className="rounded-full w-20 h-20"
+            onClick={onEndCall}
+          >
+            <Phone />
+          </Button>
+          <Button
+            variant={!isVideoEnabled ? 'destructive' : 'secondary'}
+            size="icon"
+            className="rounded-full w-16 h-16"
+            onClick={onToggleVideo}
+          >
+            {isVideoEnabled ? <Video /> : <VideoOff />}
+          </Button>
+        </div>
+
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white text-center">
+            <h2 className="text-2xl font-bold">{participant?.username}</h2>
+            <p>{callStatus === 'calling' ? 'Calling...' : 'In call'}</p>
+        </div>
+      </div>
+    </div>
+  );
+};

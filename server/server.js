@@ -124,6 +124,7 @@ io.use(async (socket, next) => {
 
 io.on('connection', (socket) => {
   console.log('a user connected:', socket.user.username);
+  socket.join(socket.user._id.toString());
 
   socket.on('joinRoom', (roomId) => {
     socket.join(roomId);
@@ -139,6 +140,14 @@ io.on('connection', (socket) => {
     } catch (error) {
       console.error('Error handling message:', error);
     }
+  });
+
+  socket.on('call-user', (data) => {
+    io.to(data.userToCall).emit('call-user', { signal: data.signalData, from: data.from });
+  });
+
+  socket.on('answer-call', (data) => {
+    io.to(data.to).emit('call-accepted', data.signal);
   });
 
   socket.on('disconnect', () => {
