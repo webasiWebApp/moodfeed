@@ -43,6 +43,7 @@
     "@types/json-bigint": "^1.0.4",
     "@types/socket.io-client": "^1.4.36",
     "axios": "^1.12.2",
+    "buffer": "^6.0.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
@@ -62,9 +63,11 @@
     "recharts": "^2.13.3",
     "socket.io-client": "^4.8.1",
     "sonner": "^1.7.0",
+    "stream-browserify": "^3.0.0",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.1",
+    "vite-plugin-node-polyfills": "^0.24.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {

@@ -6,7 +6,7 @@ import { ArrowLeft, Send, Phone } from 'lucide-react';
 import { getConversationMessages } from '../api/chat';
 import { Message } from '@/types/chat';
 import { useAuth } from '../contexts/AuthContext';
-import io, { Socket } from 'socket.io-client';
+import {io, Socket} from 'socket.io-client';
 import Peer from 'simple-peer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,7 +60,7 @@ export function Chat() {
       getConversationMessages(chatId).then(setMessages);
 
       const accessToken = localStorage.getItem('accessToken');
-      socketRef.current = io('http://localhost:3000', {
+      socketRef.current = io({
         transports: ['polling', 'websocket'],
         auth: {
           token: accessToken,
@@ -86,6 +86,10 @@ export function Chat() {
   }, [chatId]);
 
   const startCall = async () => {
+    if (!socketRef.current) {
+      console.error("Socket not initialized");
+      return;
+    }
     const participant = messages.find(m => m.sender._id !== user?._id)?.sender;
     if (!participant) return;
 
