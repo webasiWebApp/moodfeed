@@ -122,15 +122,15 @@ export const PostCard: React.FC<PostCardProps> = ({
           <div className="flex items-center space-x-3">
             <div className="relative">
               <Avatar className="w-12 h-12 border-2 border-primary">
-                <AvatarImage src={post.author.avatar} alt={post.author.displayName} />
-                <AvatarFallback>{post.author.displayName[0]}</AvatarFallback>
+                <AvatarImage src={post.author.avatar} alt={post.author.displayName || post.author.username} />
+                <AvatarFallback>{(post.author.displayName || post.author.username)?.charAt(0)}</AvatarFallback>
               </Avatar>
               <span className="absolute -bottom-1 -right-1 text-lg">
                 {post.author.mood}
               </span>
             </div>
             <div>
-              <h3 className="font-semibold text-white">{post.author.displayName}</h3>
+              <h3 className="font-semibold text-white">{post.author.displayName || post.author.username}</h3>
               <p className="text-sm text-muted-foreground">@{post.author.username}</p>
             </div>
           </div>
