@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useForm } from 'react-hook-form';
-import { Image, ArrowLeft } from 'lucide-react';
+import { Image, ArrowLeft, Camera } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -9,6 +9,7 @@ import { createPost } from '@/api/posts';
 import { uploadMedia } from '@/api/upload';
 import { useToast } from '@/hooks/useToast';
 import { useNavigate } from 'react-router-dom';
+import { CameraCapture } from '@/components/CameraCapture';
 
 interface CreatePostForm {
   content: string;
@@ -28,6 +29,7 @@ export const CreatePost: React.FC = () => {
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
   const { register, handleSubmit, formState: { errors }, watch } = useForm<CreatePostForm>();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -52,6 +54,16 @@ export const CreatePost: React.FC = () => {
         });
       }
     }
+  };
+  
+  const handlePhotoCapture = (file: File) => {
+    setMediaFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setMediaPreview(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+    setIsCameraOpen(false);
   };
 
   const handleMoodSelect = (mood: string) => {
@@ -117,6 +129,12 @@ export const CreatePost: React.FC = () => {
 
   return (
     <div className="min-h-screen gradient-bg">
+      {isCameraOpen && (
+        <CameraCapture 
+          onCapture={handlePhotoCapture}
+          onClose={() => setIsCameraOpen(false)} 
+        />
+      )}
       <div className="container mx-auto px-4 py-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -218,6 +236,16 @@ export const CreatePost: React.FC = () => {
                 >
                   <Image className="h-4 w-4 mr-2" />
                   Add Media
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setIsCameraOpen(true)}
+                  className="border-white/20 text-white hover:bg-white/10"
+                >
+                  <Camera className="h-4 w-4 mr-2" />
+                  Take Photo
                 </Button>
               </div>
 
