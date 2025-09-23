@@ -134,10 +134,12 @@ io.on('connection', (socket) => {
   });
 
   socket.on('call-user', (data) => {
+    console.log('user call incoming:');
     io.to(data.userToCall).emit('call-user', { signal: data.signalData, from: data.from });
   });
 
   socket.on('answer-call', (data) => {
+    console.log('user call answered:');
     io.to(data.to).emit('call-accepted', data.signal);
   });
 

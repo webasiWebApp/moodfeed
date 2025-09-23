@@ -96,6 +96,7 @@ export function Chat() {
     setCallStatus('calling');
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     setLocalStream(stream);
+    // console.log(stream);
 
     const newPeer = new Peer({
       initiator: true,

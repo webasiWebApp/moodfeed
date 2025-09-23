@@ -38,7 +38,7 @@ export function Messages() {
   }, [user]);
 
   const getParticipant = (conversation: Conversation) => {
-    return conversation.participants.find(p => p._id !== user?._id);
+    return conversation.participants.find((p: { _id: string | undefined; }) => p._id !== user?._id);
   };
 
   const handleCallClick = (e: React.MouseEvent, conversationId: string) => {
