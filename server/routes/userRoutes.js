@@ -91,6 +91,17 @@ router.put('/me', requireUser, async (req, res) => {
   }
 });
 
+// Follow/unfollow user
+router.post('/:userId/follow', requireUser, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const result = await UserService.followUser(req.user._id, userId);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+});
+
 // Get user by username
 router.get('/:username', async (req, res) => {
   try {

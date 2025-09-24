@@ -154,6 +154,36 @@ class UserService {
       throw new Error(`Database error while setting user password: ${err}`);
     }
   }
+
+  static async followUser(currentUserId, targetUserId) {
+    if (currentUserId === targetUserId) {
+      throw new Error('You cannot follow yourself');
+    }
+
+    const currentUser = await User.findById(currentUserId);
+    const targetUser = await User.findById(targetUserId);
+
+    if (!currentUser || !targetUser) {
+      throw new Error('User not found');
+    }
+
+    const isFollowing = currentUser.following.includes(targetUserId);
+
+    if (isFollowing) {
+      // Unfollow
+      currentUser.following.pull(targetUserId);
+      targetUser.followers.pull(currentUserId);
+    } else {
+      // Follow
+      currentUser.following.push(targetUserId);
+      targetUser.followers.push(currentUserId);
+    }
+
+    await currentUser.save();
+    await targetUser.save();
+
+    return { isFollowing: !isFollowing };
+  }
 }
 
 module.exports = UserService;

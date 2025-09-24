@@ -52,3 +52,16 @@ export const getUserProfile = async (username: string) => {
     throw new Error(error?.response?.data?.message || error.message);
   }
 };
+
+// Description: Follow or unfollow a user
+// Endpoint: POST /api/users/:userId/follow
+// Request: { userId: string }
+// Response: { success: boolean, isFollowing: boolean }
+export const followUser = async (userId: string) => {
+  try {
+    const response = await api.post(`/users/${userId}/follow`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error?.response?.data?.message || error.message);
+  }
+};

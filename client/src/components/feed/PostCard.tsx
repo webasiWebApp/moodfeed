@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/useToast';
 import { toggleLikePost } from '@/api/posts';
 import { formatDistanceToNow } from 'date-fns';
 import { VideoPlayer } from './VideoPlayer';
+import { useNavigate } from 'react-router-dom';
 
 interface PostCardProps {
   post: Post;
@@ -36,74 +37,50 @@ export const PostCard: React.FC<PostCardProps> = ({
   const cardRef = useRef<HTMLDivElement>(null);
   const longPressTimer = useRef<NodeJS.Timeout>();
   const controls = useAnimation();
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // Reset position when post becomes active
     if (isActive) {
       controls.start({ y: 0, transition: { duration: 0 } });
     }
   }, [isActive, controls]);
 
-
+  const handleProfileClick = () => {
+    navigate(`/profile/${post.author.username}`);
+  };
 
   const handleLike = async () => {
     try {
       const response = await toggleLikePost(post._id) as any;
       setIsLiked(response.isLiked);
       setLikesCount(response.likesCount);
-
-      // Trigger celebration animation
-      controls.start({
-        scale: [1, 1.2, 1],
-        transition: { duration: 0.3 }
-      });
+      controls.start({ scale: [1, 1.2, 1], transition: { duration: 0.3 } });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to like post",
-        variant: "destructive"
-      });
+      toast({ title: "Error", description: "Failed to like post", variant: "destructive" });
     }
   };
 
   const handlePanEnd = (_event: any, info: PanInfo) => {
     const threshold = 100;
-    
-    // Determine if the swipe is more horizontal or vertical
     const isHorizontal = Math.abs(info.offset.x) > Math.abs(info.offset.y);
     
     if (isHorizontal && Math.abs(info.offset.x) > threshold) {
-      if (info.offset.x > 0) {
-        // Swiped right - open comments drawer
-        onSwipeRight(post._id);
-      } else {
-        // Swiped left - not for me
-        onSwipeLeft(post._id);
-      }
+      if (info.offset.x > 0) onSwipeRight(post._id);
+      else onSwipeLeft(post._id);
     } else if (!isHorizontal && Math.abs(info.offset.y) > threshold) {
-      if (info.offset.y > 0) {
-        // Swiped down - previous post
-        onSwipeVertical?.('down');
-      } else {
-        // Swiped up - next post
-        onSwipeVertical?.('up');
-      }
+      if (info.offset.y > 0) onSwipeVertical?.('down');
+      else onSwipeVertical?.('up');
     }
     
-    // Reset position
     controls.start({ x: 0, y: 0, transition: { duration: 0.2 } });
   };
 
   const handleTouchStart = () => {
-    longPressTimer.current = setTimeout(() => {
-      onLongPress(post._id);
-    }, 600);
+    longPressTimer.current = setTimeout(() => onLongPress(post._id), 600);
   };
 
   const handleTouchEnd = () => {
-    if (longPressTimer.current) {
-      clearTimeout(longPressTimer.current);
-    }
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
   };
 
   return (
@@ -119,97 +96,52 @@ export const PostCard: React.FC<PostCardProps> = ({
       dragElastic={0.2}
     >
       <div className="w-full max-w-md glass-effect rounded-2xl overflow-hidden">
-        {/* Header */}
         <div className="flex items-center justify-between p-4">
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-3 cursor-pointer" onClick={handleProfileClick}>
             <div className="relative">
               <Avatar className="w-12 h-12 border-2 border-primary">
                 <AvatarImage src={post.author.avatar} alt={post.author.displayName || post.author.username} />
                 <AvatarFallback>{(post.author.displayName || post.author.username)?.charAt(0)}</AvatarFallback>
               </Avatar>
-              <span className="absolute -bottom-1 -right-1 text-lg">
-                {post.author.mood}
-              </span>
+              <span className="absolute -bottom-1 -right-1 text-lg">{post.author.mood}</span>
             </div>
             <div>
               <h3 className="font-semibold text-white">{post.author.displayName || post.author.username}</h3>
               <p className="text-sm text-muted-foreground">@{post.author.username}</p>
             </div>
           </div>
-          <Button variant="ghost" size="icon" className="text-white">
-            <MoreHorizontal className="w-5 h-5" />
-          </Button>
+          <Button variant="ghost" size="icon" className="text-white"><MoreHorizontal className="w-5 h-5" /></Button>
         </div>
 
-        {/* Content */}
         <div className="px-4 pb-3">
           <p className="text-white leading-relaxed">{post.content}</p>
         </div>
 
-        {/* Media */}
         {post.mediaUrl && (
           <div className="relative">
-            {post.mediaType === 'video' ? (
-              <VideoPlayer src={post.mediaUrl} />
-            ) : (
-              <img
-                src={post.mediaUrl}
-                alt="Post content"
-                className="w-full h-80 object-cover"
-              />
-            )}
+            {post.mediaType === 'video' ? <VideoPlayer src={post.mediaUrl} /> : <img src={post.mediaUrl} alt="Post content" className="w-full h-80 object-cover" />}
           </div>
         )}
 
-        {/* Actions */}
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center space-x-6">
-            <motion.button
-              onClick={handleLike}
-              className="flex items-center space-x-2"
-              whileTap={{ scale: 0.9 }}
-            >
-              <Heart
-                className={`w-6 h-6 ${
-                  isLiked ? 'fill-red-500 text-red-500' : 'text-white'
-                }`}
-              />
+            <motion.button onClick={handleLike} className="flex items-center space-x-2" whileTap={{ scale: 0.9 }}>
+              <Heart className={`w-6 h-6 ${isLiked ? 'fill-red-500 text-red-500' : 'text-white'}`} />
               <span className="text-white font-medium">{likesCount}</span>
             </motion.button>
-
-            <motion.button
-              onClick={() => onComment(post._id)}
-              className="flex items-center space-x-2"
-              whileTap={{ scale: 0.9 }}
-            >
+            <motion.button onClick={() => onComment(post._id)} className="flex items-center space-x-2" whileTap={{ scale: 0.9 }}>
               <MessageCircle className="w-6 h-6 text-white" />
               <span className="text-white font-medium">{post.comments}</span>
             </motion.button>
-
-            <motion.button
-              onClick={() => onShare(post._id)}
-              whileTap={{ scale: 0.9 }}
-            >
-              <Share className="w-6 h-6 text-white" />
-            </motion.button>
+            <motion.button onClick={() => onShare(post._id)} whileTap={{ scale: 0.9 }}><Share className="w-6 h-6 text-white" /></motion.button>
           </div>
-
-          <span className="text-sm text-muted-foreground">
-            {formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}
-          </span>
+          <span className="text-sm text-muted-foreground">{formatDistanceToNow(new Date(post.createdAt), { addSuffix: true })}</span>
         </div>
       </div>
 
-      {/* Swipe indicators */}
       <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 flex space-x-4 text-white/50">
-        <div className="flex items-center space-x-1">
-          <span>←</span>
-          <span className="text-xs">Not for me</span>
-        </div>
-        <div className="flex items-center space-x-1">
-          <span className="text-xs">Quick comment</span>
-          <span>→</span>
-        </div>
+        <div className="flex items-center space-x-1"><span>←</span><span className="text-xs">Not for me</span></div>
+        <div className="flex items-center space-x-1"><span className="text-xs">Quick comment</span><span>→</span></div>
       </div>
     </motion.div>
   );
