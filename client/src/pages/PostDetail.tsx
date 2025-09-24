@@ -73,8 +73,6 @@ export const PostDetail = () => {
       const response = await addComment(post._id, newComment);
       setComments(prevComments => [response.comment, ...prevComments]);
       setNewComment('');
-      // Correctly increment the comment count
-      setPost(prevPost => prevPost ? { ...prevPost, comments: (prevPost.comments || 0) + 1 } : null);
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to add comment', variant: 'destructive' });
     } finally {
@@ -156,7 +154,7 @@ export const PostDetail = () => {
             </Button>
             <Button variant="ghost" className="flex items-center space-x-2">
               <MessageCircle className="w-5 h-5" />
-              <span>{typeof post.comments === 'number' ? post.comments : 0}</span>
+              <span>{comments.length}</span>
             </Button>
             <Button variant="ghost" className="flex items-center space-x-2" onClick={handleShare}>
               <Share2 className="w-5 h-5" />

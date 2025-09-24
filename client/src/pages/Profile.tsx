@@ -1,40 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Grid, Heart, MessageCircle } from 'lucide-react';
+import { Settings } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { getCurrentUser, User } from '@/api/users';
 import { useToast } from '@/hooks/useToast';
 import { useNavigate } from 'react-router-dom';
+import { PostCard } from '@/components/feed/PostCard';
+import { getPostsByUserId, Post } from '@/api/posts';
 
 export const Profile: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
 
   useEffect(() => {
-    loadUserProfile();
-  }, []);
+    const loadProfileData = async () => {
+      try {
+        setLoading(true);
+        const userResponse = await getCurrentUser();
+        setUser(userResponse.user);
+        if (userResponse.user) {
+          const postsResponse = await getPostsByUserId(userResponse.user._id);
+          setPosts(postsResponse.posts);
+        }
+      } catch (error) { 
+        console.error('Error loading profile data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load profile data.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const loadUserProfile = async () => {
-    try {
-      console.log('Loading user profile');
-      const response = await getCurrentUser();
-      console.log('User profile loaded:', response.user);
-      setUser(response.user);
-    } catch (error) {
-      console.error('Error loading profile:', error);
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    loadProfileData();
+  }, [toast]);
 
   if (loading) {
     return (
@@ -61,15 +66,16 @@ export const Profile: React.FC = () => {
     );
   }
 
-  // Safe fallback values
-  const displayName = user.displayName || user.username || user.email || 'User';
-  const username = user.username || 'user';
-  const avatar = user.avatar || '';
-  const bio = user.bio || '';
-  const mood = user.mood || '😊';
-  const postsCount = user.postsCount || 0;
-  const followersCount = user.followersCount || 0;
-  const followingCount = user.followingCount || 0;
+  const { displayName, username, avatar, bio, mood, postsCount, followersCount, followingCount } = {
+    displayName: user.displayName || user.username || user.email || 'User',
+    username: user.username || 'user',
+    avatar: user.avatar || '',
+    bio: user.bio || '',
+    mood: user.mood || '😊',
+    postsCount: posts.length || 0,
+    followersCount: user.followersCount || 0,
+    followingCount: user.followingCount || 0,
+  };
 
   return (
     <div className="min-h-screen gradient-bg">
@@ -79,7 +85,6 @@ export const Profile: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="max-w-2xl mx-auto"
         >
-          {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-2xl font-bold text-white">Profile</h1>
             <Button
@@ -92,7 +97,6 @@ export const Profile: React.FC = () => {
             </Button>
           </div>
 
-          {/* Profile Info */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -133,7 +137,6 @@ export const Profile: React.FC = () => {
             </div>
           </motion.div>
 
-          {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-4 mb-6">
             <Button
               onClick={() => navigate('/settings/profile')}
@@ -149,52 +152,19 @@ export const Profile: React.FC = () => {
             </Button>
           </div>
 
-          {/* Posts Grid */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="glass-effect p-6 rounded-2xl"
-          >
-            <div className="flex items-center space-x-2 mb-4">
-              <Grid className="w-5 h-5 text-primary" />
-              <h3 className="text-lg font-semibold text-white">Your Posts</h3>
-            </div>
-
-            {/* Mock posts grid */}
-            <div className="grid grid-cols-3 gap-2">
-              {[...Array(9)].map((_, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="aspect-square bg-gradient-to-br from-primary/20 to-secondary/20 rounded-xl relative overflow-hidden cursor-pointer hover:scale-105 transition-transform"
-                >
-                  <img
-                    src={`https://images.unsplash.com/photo-${1500000000000 + index}?w=200&h=200&fit=crop`}
-                    alt={`Post ${index + 1}`}
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.src = `https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=200&h=200&fit=crop`;
-                    }}
-                  />
-                  <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                    <div className="flex items-center space-x-4 text-white">
-                      <div className="flex items-center space-x-1">
-                        <Heart className="w-4 h-4" />
-                        <span className="text-sm">{Math.floor(Math.random() * 100) + 10}</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <MessageCircle className="w-4 h-4" />
-                        <span className="text-sm">{Math.floor(Math.random() * 20) + 1}</span>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
+          <div className="space-y-4">
+            {posts.map(post => (
+              <PostCard 
+                key={post._id} 
+                post={post} 
+                onSwipeLeft={() => {}} 
+                onSwipeRight={() => {}} 
+                onLongPress={() => {}} 
+                onComment={() => navigate(`/post/${post._id}`)} 
+                onShare={() => {}} 
+              />
+            ))}
+          </div>
         </motion.div>
       </div>
     </div>

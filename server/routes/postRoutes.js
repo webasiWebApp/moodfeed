@@ -47,6 +47,16 @@ router.post('/', requireUser, (req, res, next) => {
     });
 });
 
+// Get posts by user ID
+router.get('/user/:userId', requireUser, (req, res, next) => {
+    PostService.getPostsByUserId(req.params.userId, req.user._id)
+        .then(posts => {
+            res.json({ posts });
+        })
+        .catch(next);
+});
+
+
 // Like/unlike post
 router.post('/:postId/like', requireUser, (req, res, next) => {
   PostService.likePost(req.params.postId, req.user._id)

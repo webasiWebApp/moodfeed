@@ -218,7 +218,7 @@ export const CreatePost: React.FC = () => {
             )}
 
             {/* Actions */}
-            <div className="flex items-center justify-between pt-4">
+            <div className="flex flex-col items-center justify-between pt-4">
               <div className="flex space-x-2">
                 <input
                   type="file"
@@ -248,9 +248,10 @@ export const CreatePost: React.FC = () => {
                   Take Photo
                 </Button>
               </div>
-
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center -space-x-1">
+            
+            <div className='flex flex-col '>
+              <div className="flex flex-col items-center space-x-4">
+                <div className="flex items-center -space-x-1 py-6">
                   {moods.map((mood) => (
                     <motion.button
                       key={mood.emoji}
@@ -272,11 +273,14 @@ export const CreatePost: React.FC = () => {
                 <Button
                   type="submit"
                   disabled={isSubmitting}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 px-32"
                 >
                   {isSubmitting ? 'Posting...' : 'Post'}
                 </Button>
               </div>
+          </div>
+
+
             </div>
           </form>
         </motion.div>

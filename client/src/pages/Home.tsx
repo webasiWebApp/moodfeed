@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { PostCard } from '@/components/feed/PostCard';
 import { SuggestedCommentsDrawer } from '@/components/feed/SuggestedCommentsDrawer';
 import { ActionSheet } from '@/components/feed/ActionSheet';
@@ -9,11 +11,25 @@ import { useNavigate } from 'react-router-dom';
 import { startConversation } from '@/api/chat';
 import { useAuth } from '@/contexts/AuthContext';
 
+const fetchPosts = async ({ pageParam = 1 }) => {
+  const response = await getFeedPosts(pageParam, 10) as any;
+  return response;
+};
+
 export const Home: React.FC = () => {
-  const [posts, setPosts] = useState<Post[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const queryClient = useQueryClient();
+  const { data, fetchNextPage, hasNextPage, isLoading, isError } = useInfiniteQuery({
+    queryKey: ['feedPosts'],
+    queryFn: fetchPosts,
+    initialPageParam: 1,
+    getNextPageParam: (lastPage, pages) => {
+      return lastPage.hasMore ? pages.length + 1 : undefined;
+    },
+  });
+
+  const posts = data?.pages.flatMap(page => page.posts) ?? [];
+
+  const [activePostId, setActivePostId] = useState<string | null>(null);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [showCommentsDrawer, setShowCommentsDrawer] = useState(false);
   const [showActionSheet, setShowActionSheet] = useState(false);
@@ -22,48 +38,54 @@ export const Home: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const loadPosts = useCallback(async (pageNum: number = 1) => {
-    try {
-      console.log('Loading posts for page:', pageNum);
-      const response = await getFeedPosts(pageNum, 10) as any;
-
-      if (pageNum === 1) {
-        setPosts(response.posts);
-      } else {
-        setPosts(prev => [...prev, ...response.posts]);
+  const observer = useRef<IntersectionObserver>();
+  const lastPostElementRef = useCallback(node => {
+    if (isLoading) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasNextPage) {
+        fetchNextPage();
       }
+    });
+    if (node) observer.current.observe(node);
+  }, [isLoading, hasNextPage, fetchNextPage]);
 
-      setHasMore(response.hasMore);
-      setLoading(false);
-    } catch (error) {
-      console.error('Error loading posts:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load posts",
-        variant: "destructive"
-      });
-      setLoading(false);
-    }
-  }, [toast]);
+  const postRefs = useRef(new Map());
+  const activePostObserver = useRef<IntersectionObserver>();
 
   useEffect(() => {
-    loadPosts(1);
-  }, [loadPosts]);
+    activePostObserver.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setActivePostId(entry.target.getAttribute('data-post-id'));
+          }
+        });
+      },
+      { threshold: 0.5 } // 50% of the post is visible
+    );
 
-  // Infinite scroll
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.innerHeight + document.documentElement.scrollTop < document.documentElement.offsetHeight - 200 || loading || !hasMore) {
-        return;
+    const observer = activePostObserver.current;
+    postRefs.current.forEach((ref) => {
+      if (ref) {
+        observer.observe(ref);
       }
-      const nextPage = page + 1;
-      setPage(nextPage);
-      loadPosts(nextPage);
+    });
+
+    return () => {
+      if (observer) {
+        observer.disconnect();
+      }
     };
+  }, [posts]);
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [loading, hasMore, page, loadPosts]);
+  const setPostRef = (node, postId) => {
+    if (node) {
+      postRefs.current.set(postId, node);
+    } else {
+      postRefs.current.delete(postId);
+    }
+  };
 
   const handleSwipeLeft = async (postId: string) => {
     console.log('Swiped left on post (not for me):', postId);
@@ -74,7 +96,10 @@ export const Home: React.FC = () => {
         title: "Not Interested",
         description: "We'll show you less content like this"
       });
-      setPosts(prev => prev.filter(p => p._id !== postId));
+      queryClient.setQueryData(['feedPosts'], (oldData: any) => ({
+        ...oldData,
+        pages: oldData.pages.map(page => ({...page, posts: page.posts.filter(p => p._id !== postId)}))
+      }));
     } catch (error) {
       console.error('Error marking post as not for me:', error);
     }
@@ -123,11 +148,12 @@ export const Home: React.FC = () => {
       setCelebrationType('comment');
       setShowCommentsDrawer(false);
 
-      setPosts(prev => prev.map(post =>
-        post._id === selectedPostId
-          ? { ...post, comments: post.comments + 1 }
-          : post
-      ));
+      queryClient.setQueryData(['feedPosts'], (oldData: any) => ({
+        ...oldData,
+        pages: oldData.pages.map(page => ({...page, posts: page.posts.map(post => 
+          post._id === selectedPostId ? { ...post, comments: post.comments + 1 } : post
+        )}))
+      }));
 
       toast({
         title: "Comment Added",
@@ -174,12 +200,20 @@ export const Home: React.FC = () => {
     }
   };
 
-  if (loading && posts.length === 0) {
+  if (isLoading && posts.length === 0) {
     return (
       <div className="min-h-screen gradient-bg flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
+  }
+  
+  if (isError) {
+      toast({
+        title: "Error",
+        description: "Failed to load posts",
+        variant: "destructive"
+      });
   }
 
   return (
@@ -194,11 +228,21 @@ export const Home: React.FC = () => {
 
       <div className="pt-40 pb-2">
         <div className="flex flex-col items-center gap-4">
-          {posts.map((post) => (
-            <div key={post._id} className="w-full max-w-md">
+          {posts.map((post, index) => (
+            <div 
+              ref={node => {
+                if (posts.length === index + 1) {
+                  lastPostElementRef(node);
+                }
+                setPostRef(node, post._id);
+              }}
+              key={post._id} 
+              className="w-full max-w-md"
+              data-post-id={post._id}
+            >
               <PostCard
                 post={post}
-                isActive={true}
+                isActive={activePostId === post._id}
                 onSwipeLeft={handleSwipeLeft}
                 onSwipeRight={handleSwipeRight}
                 onLongPress={handleLongPress}
@@ -208,17 +252,17 @@ export const Home: React.FC = () => {
             </div>
           ))}
         </div>
-        {loading && (
+        {isLoading && (
           <div className="text-center p-4">
             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
           </div>
         )}
-        {!hasMore && posts.length > 0 && (
+        {!hasNextPage && posts.length > 0 && (
           <div className="text-center p-4 text-white">
             <p>You've reached the end of the feed.</p>
           </div>
         )}
-        {!loading && posts.length === 0 && (
+        {!isLoading && posts.length === 0 && (
           <div className="text-center pt-20">
             <h2 className="text-2xl font-bold text-white mb-2">No posts to show</h2>
             <p className="text-muted-foreground">Check back later for new content!</p>

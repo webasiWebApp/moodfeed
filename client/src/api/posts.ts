@@ -167,3 +167,18 @@ export const markNotForMe = async (postId: string) => {
     throw error;
   }
 };
+
+// Description: Get all posts by a specific user
+// Endpoint: GET /api/posts/user/:userId
+// Request: { userId: string }
+// Response: { posts: Post[] }
+export const getPostsByUserId = async (userId: string) => {
+  console.log('Fetching posts for user:', userId);
+  try {
+    const response = await api.get(`/posts/user/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching user posts:', error);
+    throw error;
+  }
+};

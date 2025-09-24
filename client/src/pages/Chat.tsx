@@ -420,7 +420,7 @@ export function Chat() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => navigate('/messages')}
+                onClick={() => navigate('/inbox')}
                 className="text-white"
               >
                 <ArrowLeft className="w-5 h-5" />

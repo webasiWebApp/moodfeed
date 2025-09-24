@@ -44,6 +44,8 @@ export const PostCard: React.FC<PostCardProps> = ({
     }
   }, [isActive, controls]);
 
+
+
   const handleLike = async () => {
     try {
       const response = await toggleLikePost(post._id) as any;

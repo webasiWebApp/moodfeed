@@ -58,6 +58,8 @@ class PostService {
     if (page === 1) {
         try {
             const recommendedPosts = await RecommendationEngine.getRecommendedPosts(userId);
+
+
             const user = await User.findById(userId).select('likedPosts').lean();
             const transformedPosts = recommendedPosts.map(post => transformPost(post, user));
             return { posts: transformedPosts, hasMore: recommendedPosts.length > 0 };
@@ -204,6 +206,23 @@ class PostService {
     
     await post.remove();
     return true;
+  }
+
+  static async getPostsByUserId(userId, currentUserId) {
+    const posts = await Post.find({ author: userId })
+        .sort({ createdAt: -1 })
+        .populate('author', 'username displayName avatar mood')
+        .lean();
+
+    const currentUser = await User.findById(currentUserId).select('likedPosts').lean();
+    const likedPostIds = new Set(currentUser ? currentUser.likedPosts.map(p => p.toString()) : []);
+
+    return posts.map(post => ({
+        ...post,
+        isLiked: likedPostIds.has(post._id.toString()),
+        likes: post.likes.length,
+        comments: post.comments.length,
+    }));
   }
 }
 

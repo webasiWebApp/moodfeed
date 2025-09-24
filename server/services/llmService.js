@@ -61,6 +61,12 @@ You are a social media recommendation engine. Your task is to analyze user prefe
       // The response is a JSON string, so we can parse it directly.
       return JSON.parse(text);
     } catch (error) {
+      // Special handling for rate-limiting errors (429)
+      if (error.status === 429) {
+        console.warn('LLM rate limit exceeded. Falling back to default behavior (no recommendations).', error.message);
+        return []; // Return empty array to allow fallback to recent posts
+      }
+      
       console.error('Error generating or parsing recommendations from LLM:', error);
       if (text) {
         console.error('LLM response text that failed parsing:', text);
