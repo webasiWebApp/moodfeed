@@ -91,6 +91,34 @@ router.put('/me', requireUser, async (req, res) => {
   }
 });
 
+// Get user by ID
+router.get('/id/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    console.log(`Getting profile for user ID: ${userId}`);
+    const user = await UserService.get(userId);
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      user: user.toJSON() 
+    });
+  } catch (error) {
+    console.error(`Error getting user by ID: ${error.message}`);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message 
+    });
+  }
+});
+
 // Follow/unfollow user
 router.post('/:userId/follow', requireUser, async (req, res) => {
   try {

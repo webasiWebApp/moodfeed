@@ -46,7 +46,7 @@ export const PostCard: React.FC<PostCardProps> = ({
   }, [isActive, controls]);
 
   const handleProfileClick = () => {
-    navigate(`/profile/${post.author.username}`);
+    navigate(`/profile/${post.author._id}`);
   };
 
   const handleLike = async () => {

@@ -119,6 +119,8 @@ class UserService {
         avatar: '',
         bio: '',
         mood: '😊',
+        followers: [],
+        following: [],
         followersCount: 0,
         followingCount: 0,
         postsCount: 0
@@ -156,32 +158,44 @@ class UserService {
   }
 
   static async followUser(currentUserId, targetUserId) {
-    if (currentUserId === targetUserId) {
+    if (currentUserId.toString() === targetUserId.toString()) {
       throw new Error('You cannot follow yourself');
     }
 
-    const currentUser = await User.findById(currentUserId);
     const targetUser = await User.findById(targetUserId);
-
-    if (!currentUser || !targetUser) {
+    if (!targetUser) {
       throw new Error('User not found');
     }
 
-    const isFollowing = currentUser.following.includes(targetUserId);
+    const currentUser = await User.findById(currentUserId);
+    if (!currentUser) {
+        throw new Error('User not found');
+    }
+
+    const isFollowing = currentUser.following && currentUser.following.includes(targetUserId);
 
     if (isFollowing) {
       // Unfollow
-      currentUser.following.pull(targetUserId);
-      targetUser.followers.pull(currentUserId);
+      await User.updateOne({ _id: currentUserId }, { 
+        $pull: { following: targetUserId },
+        $inc: { followingCount: -1 }
+      });
+      await User.updateOne({ _id: targetUserId }, { 
+        $pull: { followers: currentUserId },
+        $inc: { followersCount: -1 }
+      });
     } else {
       // Follow
-      currentUser.following.push(targetUserId);
-      targetUser.followers.push(currentUserId);
+      await User.updateOne({ _id: currentUserId }, { 
+        $addToSet: { following: targetUserId }, // use $addToSet to prevent duplicates
+        $inc: { followingCount: 1 }
+      });
+      await User.updateOne({ _id: targetUserId }, {
+        $addToSet: { followers: currentUserId },
+        $inc: { followersCount: 1 }
+      });
     }
-
-    await currentUser.save();
-    await targetUser.save();
-
+    
     return { isFollowing: !isFollowing };
   }
 }

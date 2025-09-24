@@ -27,6 +27,7 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/" element={<ProtectedRoute><Layout><Home /></Layout></ProtectedRoute>} />
           <Route path="/compose" element={<ProtectedRoute><Layout><CreatePost /></Layout></ProtectedRoute>} />
+          <Route path="/profile/:userId" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />
           <Route path="/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />
           <Route path="/inbox" element={<ProtectedRoute><Layout><Messages /></Layout></ProtectedRoute>} />
           <Route path="/chat/:chatId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />

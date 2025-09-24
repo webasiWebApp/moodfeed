@@ -41,6 +41,14 @@ const schema = new mongoose.Schema({
     default: '😊',
     enum: ['😊', '😠', '😢', '🤩', '😌', '😐']
   },
+  followers: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  following: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
   followersCount: {
     type: Number,
     default: 0,

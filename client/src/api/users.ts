@@ -53,6 +53,19 @@ export const getUserProfile = async (username: string) => {
   }
 };
 
+// Description: Get user profile by ID
+// Endpoint: GET /users/id/:userId
+// Request: { userId: string }
+// Response: { success: boolean, user: User }
+export const getUserProfileById = async (userId: string) => {
+  try {
+    const response = await api.get(`/users/id/${userId}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(error?.response?.data?.message || error.message);
+  }
+};
+
 // Description: Follow or unfollow a user
 // Endpoint: POST /api/users/:userId/follow
 // Request: { userId: string }
@@ -62,6 +75,8 @@ export const followUser = async (userId: string) => {
     const response = await api.post(`/users/${userId}/follow`);
     return response.data;
   } catch (error) {
-    throw new Error(error?.response?.data?.message || error.message);
+    const errorMessage = error?.response?.data?.message || error.message;
+    console.error(`Error in followUser: ${errorMessage}`);
+    throw new Error(errorMessage);
   }
 };

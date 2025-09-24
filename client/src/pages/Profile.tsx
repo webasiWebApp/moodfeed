@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Settings, UserPlus, UserCheck } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { getCurrentUser, getUserProfile, followUser, User } from '@/api/users';
+import { getCurrentUser, getUserProfile, followUser, User, getUserProfileById } from '@/api/users';
 import { useToast } from '@/hooks/useToast';
 import { useNavigate, useParams } from 'react-router-dom';
 import { PostCard } from '@/components/feed/PostCard';
@@ -17,7 +17,7 @@ export const Profile: React.FC = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { username } = useParams<{ username: string }>();
+  const { username, userId } = useParams<{ username: string, userId: string }>();
 
   useEffect(() => {
     const loadProfileData = async () => {
@@ -26,9 +26,19 @@ export const Profile: React.FC = () => {
         const currentUserResponse = await getCurrentUser();
         setCurrentUser(currentUserResponse.user);
 
-        const userToFetch = username || currentUserResponse.user.username;
+        let userToFetch: string | undefined;
+        let userProfileResponse;
+
+        if (userId) {
+          userProfileResponse = await getUserProfileById(userId);
+        } else if (username) {
+          userToFetch = username;
+          userProfileResponse = await getUserProfile(userToFetch);
+        } else {
+          userToFetch = currentUserResponse.user.username;
+          userProfileResponse = await getUserProfile(userToFetch);
+        }
         
-        const userProfileResponse = await getUserProfile(userToFetch);
         setProfileUser(userProfileResponse.user);
         setIsFollowing(userProfileResponse.user.isFollowing || false);
         
@@ -50,7 +60,7 @@ export const Profile: React.FC = () => {
     };
 
     loadProfileData();
-  }, [toast, username]);
+  }, [toast, username, userId]);
 
   const handleFollow = async () => {
     if (!profileUser) return;
