@@ -32,9 +32,10 @@ const server = http.createServer(app);
 
 const port = process.env.PORT || 3000;
 const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+const allowedOrigins = [clientUrl, 'https://5173-firebase-moodfeed-1757952544072.cluster-owzhzna3l5cj6tredjpnwucna4.cloudworkstations.dev'];
 
 const corsOptions = {
-  origin: "*",
+  origin: allowedOrigins,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -87,7 +88,7 @@ app.use((err, req, res, next) => {
 
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true,
     allowedHeaders: ["*"]
