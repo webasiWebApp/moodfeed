@@ -32,7 +32,7 @@ const server = http.createServer(app);
 
 const port = process.env.PORT || 3000;
 const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
-const allowedOrigins = [clientUrl, 'https://5173-firebase-moodfeed-1757952544072.cluster-owzhzna3l5cj6tredjpnwucna4.cloudworkstations.dev'];
+const allowedOrigins = [clientUrl, `https://moodfeed-client.vercel.app`,'https://5173-firebase-moodfeed-1757952544072.cluster-owzhzna3l5cj6tredjpnwucna4.cloudworkstations.dev'];
 
 const corsOptions = {
   origin: allowedOrigins,
