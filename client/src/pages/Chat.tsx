@@ -39,7 +39,7 @@ const stunServers = {
   ],
 };
 
-const serverUrl = 'https://moodfeed-server.vercel.app';
+const serverUrl = process.env.REACT_APP_SERVER_URL || 'https://moodfeed-server.vercel.app';
 
 export function Chat() {
   const { chatId } = useParams<{ chatId: string }>();
@@ -124,12 +124,33 @@ export function Chat() {
 
       const accessToken = localStorage.getItem('accessToken');
       const socket = io(serverUrl, { 
-        transports: ['websocket'],
+        transports: ['websocket', 'polling'], // Add polling as fallback
         auth: { token: accessToken },
+        timeout: 20000,
+        forceNew: true,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
       });
       socketRef.current = socket;
 
-      socket.emit('joinRoom', chatId);
+      // Add connection event handlers
+      socket.on('connect', () => {
+        console.log('Connected to server');
+      });
+
+      socket.on('connect_error', (error) => {
+        console.error('Connection error:', error);
+      });
+
+      socket.on('disconnect', (reason) => {
+        console.log('Disconnected:', reason);
+      });
+
+      // Only emit joinRoom after connection is established
+      socket.on('connect', () => {
+        socket.emit('joinRoom', chatId);
+      });
 
       const handleReceiveMessage = (message: Message) => {
         setMessages((prev) => [...prev, message]);
@@ -183,12 +204,17 @@ export function Chat() {
       socket.on('call-declined', handleCallDeclined);
 
       return () => {
-        socket.off('receiveMessage', handleReceiveMessage);
-        socket.off('call-user', handleCallUser);
-        socket.off('call-accepted', handleCallAccepted);
-        socket.off('call-ended', handleCallEnded);
-        socket.off('call-declined', handleCallDeclined);
-        socket.disconnect();
+        if (socketRef.current) {
+          socketRef.current.off('receiveMessage', handleReceiveMessage);
+          socketRef.current.off('call-user', handleCallUser);
+          socketRef.current.off('call-accepted', handleCallAccepted);
+          socketRef.current.off('call-ended', handleCallEnded);
+          socketRef.current.off('call-declined', handleCallDeclined);
+          socketRef.current.off('connect');
+          socketRef.current.off('connect_error');
+          socketRef.current.off('disconnect');
+          socketRef.current.disconnect();
+        }
         cleanupCallRef.current?.();
       };
     }
