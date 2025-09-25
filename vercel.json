@@ -7,21 +7,17 @@
     },
     {
       "src": "client/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "installCommand": "cd client && npm install",
-        "buildCommand": "cd client && npm run build"
-      }
+      "use": "@vercel/static-build"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "server/index.js"
+      "dest": "/server/index.js"
     },
     {
       "src": "/(.*)",
-      "dest": "client/$1"
+      "dest": "/client/dist/index.html"
     }
   ]
 }
