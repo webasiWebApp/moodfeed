@@ -1,13 +1,9 @@
 {
-    "version": 2,
-    "rewrites": [
-      {
-        "source": "/(.*)",
-        "destination": "/api"
-      }
-    ]
-<<<<<<< HEAD
-  }
-=======
-  }
->>>>>>> 6e2fbc4 (new)
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/api"
+    }
+  ]
+}
