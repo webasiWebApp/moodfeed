@@ -3,7 +3,7 @@ import JSONbig from 'json-bigint';
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: 'https://moodfeed.vercel.app/',
+  baseURL: 'moodfeed-server.vercel.app',
   headers: {
     'Content-Type': 'application/json',
   },

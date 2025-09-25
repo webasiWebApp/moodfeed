@@ -152,3 +152,5 @@ io.on('connection', (socket) => {
 server.listen(port, () => {
   console.log(`Server running at http://localhost:${port}`);
 });
+
+module.exports = app;
