@@ -87,6 +87,7 @@ app.use((err, req, res, next) => {
 });
 
 const io = new Server(server, {
+  path: "/api/socket.io",
   cors: {
     origin: allowedOrigins,
     methods: ["GET", "POST"],
