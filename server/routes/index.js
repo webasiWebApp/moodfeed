@@ -18,4 +18,8 @@ router.get("/ping", (req, res) => {
   res.status(200).send("pong");
 });
 
+router.get("/status", (req, res) => {
+  res.status(200).send("server is running");
+});
+
 module.exports = router;
