@@ -39,6 +39,8 @@ const stunServers = {
   ],
 };
 
+const serverUrl = 'https://moodfeed-server.vercel.app';
+
 export function Chat() {
   const { chatId } = useParams<{ chatId: string }>();
   const [messages, setMessages] = useState<Message[]>([]);
@@ -121,7 +123,7 @@ export function Chat() {
       getConversationMessages(chatId).then(setMessages);
 
       const accessToken = localStorage.getItem('accessToken');
-      const socket = io({ 
+      const socket = io(serverUrl, { 
         transports: ['websocket'],
         auth: { token: accessToken },
       });
@@ -467,7 +469,7 @@ export function Chat() {
                       <p className="text-xs text-right opacity-50">{timeAgo(message.createdAt)}</p>
                     </div>
                   </motion.div>
-                ))}
+                ))}\
                 <div ref={messagesEndRef} />
               </div>
 
@@ -503,9 +505,9 @@ export function Chat() {
                 </div>
               </div>
             </div>
-          )}
-        </>
-      )}
+          )}\
+        </>\
+      )}\
     </div>
-  );
+  );\
 }
