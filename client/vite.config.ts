@@ -17,11 +17,11 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'moodfeed-server.vercel.app',
+        target: 'https://moodfeed-server.vercel.app/',
         changeOrigin: true,
       },
       '/socket.io': {
-        target: 'moodfeed-server.vercel.app',
+        target: 'https://moodfeed-server.vercel.app/',
         changeOrigin: true,
         ws: true,
       },
