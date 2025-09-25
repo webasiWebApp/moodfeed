@@ -506,9 +506,9 @@ export function Chat() {
                 </div>
               </div>
             </div>
-          )}\
-        </>\
-      )}\
+          )}
+        </>
+      )}
     </div>
-  );\
+  );
 }
