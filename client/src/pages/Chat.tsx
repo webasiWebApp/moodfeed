@@ -39,7 +39,12 @@ const stunServers = {
   ],
 };
 
-const serverUrl = process.env.REACT_APP_SERVER_URL || 'https://moodfeed-server.vercel.app';
+// Try multiple server URLs as fallback
+const serverUrls = [
+  process.env.REACT_APP_SERVER_URL,
+  'https://moodfeed-server.vercel.app',
+  'http://localhost:3001', // Local development fallback
+].filter(Boolean);
 
 export function Chat() {
   const { chatId } = useParams<{ chatId: string }>();
@@ -49,6 +54,8 @@ export function Chat() {
   const socketRef = useRef<Socket | null>(null);
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'disconnected' | 'error'>('disconnected');
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
@@ -120,37 +127,76 @@ export function Chat() {
     ringtoneRef.current = audio;
 
     if (chatId) {
-      getConversationMessages(chatId).then(setMessages);
+      // Load messages first (this should work independently of socket)
+      getConversationMessages(chatId)
+        .then(setMessages)
+        .catch(error => {
+          console.error('Failed to load messages:', error);
+          setConnectionError('Failed to load chat messages');
+        });
 
-      const accessToken = localStorage.getItem('accessToken');
-      const socket = io(serverUrl, { 
-        transports: ['websocket', 'polling'], // Add polling as fallback
-        auth: { token: accessToken },
-        timeout: 20000,
-        forceNew: true,
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-      });
-      socketRef.current = socket;
+      // Try to connect to socket with fallback URLs
+      let currentUrlIndex = 0;
+      const tryConnection = () => {
+        if (currentUrlIndex >= serverUrls.length) {
+          setConnectionStatus('error');
+          setConnectionError('Unable to connect to any server');
+          return;
+        }
 
-      // Add connection event handlers
-      socket.on('connect', () => {
-        console.log('Connected to server');
-      });
+        const serverUrl = serverUrls[currentUrlIndex];
+        console.log(`Attempting to connect to: ${serverUrl}`);
+        setConnectionStatus('connecting');
+        setConnectionError(null);
 
-      socket.on('connect_error', (error) => {
-        console.error('Connection error:', error);
-      });
+        const accessToken = localStorage.getItem('accessToken');
+        const socket = io(serverUrl, { 
+          transports: ['polling', 'websocket'], // Try polling first
+          auth: { token: accessToken },
+          timeout: 10000,
+          forceNew: true,
+          reconnection: false, // Handle reconnection manually
+        });
+        
+        socketRef.current = socket;
 
-      socket.on('disconnect', (reason) => {
-        console.log('Disconnected:', reason);
-      });
+        // Connection success
+        socket.on('connect', () => {
+          console.log(`Connected to server: ${serverUrl}`);
+          setConnectionStatus('connected');
+          setConnectionError(null);
+          socket.emit('joinRoom', chatId);
+        });
 
-      // Only emit joinRoom after connection is established
-      socket.on('connect', () => {
-        socket.emit('joinRoom', chatId);
-      });
+        // Connection failed - try next URL
+        socket.on('connect_error', (error) => {
+          console.error(`Connection error to ${serverUrl}:`, error);
+          socket.disconnect();
+          currentUrlIndex++;
+          setTimeout(tryConnection, 1000); // Try next server after 1 second
+        });
+
+        socket.on('disconnect', (reason) => {
+          console.log('Disconnected:', reason);
+          setConnectionStatus('disconnected');
+          if (reason === 'io server disconnect') {
+            // Server disconnected us, try to reconnect
+            setTimeout(tryConnection, 2000);
+          }
+        });
+
+        // Set a timeout to try next server if connection takes too long
+        setTimeout(() => {
+          if (socket.connected === false && currentUrlIndex < serverUrls.length - 1) {
+            console.log(`Connection timeout for ${serverUrl}, trying next server`);
+            socket.disconnect();
+            currentUrlIndex++;
+            tryConnection();
+          }
+        }, 10000);
+      };
+
+      tryConnection();
 
       const handleReceiveMessage = (message: Message) => {
         setMessages((prev) => [...prev, message]);
@@ -197,11 +243,22 @@ export function Chat() {
         cleanupCallRef.current?.();
       };
 
-      socket.on('receiveMessage', handleReceiveMessage);
-      socket.on('call-user', handleCallUser);
-      socket.on('call-accepted', handleCallAccepted);
-      socket.on('call-ended', handleCallEnded);
-      socket.on('call-declined', handleCallDeclined);
+      // Only set up socket event listeners after we have a socket
+      const setupSocketListeners = () => {
+        const socket = socketRef.current;
+        if (!socket) return;
+
+        socket.on('receiveMessage', handleReceiveMessage);
+        socket.on('call-user', handleCallUser);
+        socket.on('call-accepted', handleCallAccepted);
+        socket.on('call-ended', handleCallEnded);
+        socket.on('call-declined', handleCallDeclined);
+      };
+
+      // Set up listeners when connected
+      if (socketRef.current) {
+        setupSocketListeners();
+      }
 
       return () => {
         if (socketRef.current) {
@@ -383,10 +440,7 @@ export function Chat() {
   const handleSendMessage = useCallback(
     (e: React.FormEvent) => {
       e.preventDefault();
-      if (newMessage.trim() && chatId && user && socketRef.current) {
-        const messageData = { content: newMessage, sender: user._id, conversation: chatId };
-        socketRef.current.emit('sendMessage', { roomId: chatId, message: messageData });
-
+      if (newMessage.trim() && chatId && user) {
         const optimisticMessage: Message = {
           _id: Date.now().toString(),
           content: newMessage,
@@ -395,8 +449,19 @@ export function Chat() {
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
         };
+        
+        // Always show the message locally first
         setMessages((prev) => [...prev, optimisticMessage]);
         setNewMessage('');
+
+        // Try to send via socket if connected
+        if (socketRef.current?.connected) {
+          const messageData = { content: optimisticMessage.content, sender: user._id, conversation: chatId };
+          socketRef.current.emit('sendMessage', { roomId: chatId, message: messageData });
+        } else {
+          console.warn('Socket not connected, message sent locally only');
+          // Here you could implement a fallback API call to send the message
+        }
       }
     },
     [chatId, user, newMessage]
@@ -454,7 +519,21 @@ export function Chat() {
               >
                 <ArrowLeft className="w-5 h-5" />
               </Button>
-              <h1 className="text-xl font-bold text-white">Chat with {participant?.username}</h1>
+              <h1 className="text-xl font-bold text-white">
+                Chat with {participant?.username}
+                {connectionStatus === 'connecting' && (
+                  <span className="ml-2 text-sm text-yellow-300">Connecting...</span>
+                )}
+                {connectionStatus === 'disconnected' && (
+                  <span className="ml-2 text-sm text-red-300">Offline</span>
+                )}
+                {connectionStatus === 'error' && (
+                  <span className="ml-2 text-sm text-red-400">Connection Failed</span>
+                )}
+                {connectionStatus === 'connected' && (
+                  <span className="ml-2 text-sm text-green-300">Online</span>
+                )}
+              </h1>
               <Button
                 variant="ghost"
                 size="icon"
@@ -472,6 +551,11 @@ export function Chat() {
               className="flex-1 flex flex-col glass-effect p-4 rounded-xl overflow-hidden"
             >
               <div className="flex-1 overflow-y-auto pr-2 space-y-4">
+                {connectionError && (
+                  <div className="bg-red-500/20 border border-red-500/50 rounded-lg p-3 mb-4">
+                    <p className="text-red-200 text-sm">{connectionError}</p>
+                  </div>
+                )}
                 {messages.map((message) => (
                   <motion.div
                     key={message._id}
