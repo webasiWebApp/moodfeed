@@ -192,7 +192,18 @@ export function Chat() {
         cleanupCallRef.current?.();
       };
     }
-  }, [chatId]);
+  }, [chatId, callStatus, receivingCall]); // Added missing dependencies
+
+  // Move declineCall definition before it's used in useEffect
+  const declineCall = useCallback(() => {
+    if (callTimeoutRef.current) {
+      clearTimeout(callTimeoutRef.current);
+      callTimeoutRef.current = null;
+    }
+    
+    socketRef.current?.emit('decline-call', { to: caller?._id });
+    cleanupCall();
+  }, [caller, cleanupCall]);
 
   const startCall = useCallback(async () => {
     if (!socketRef.current || callStatus !== 'ended') return;
@@ -338,16 +349,6 @@ export function Chat() {
     }
   }, [caller, callerSignal, cleanupCall, callStatus]);
 
-  const declineCall = useCallback(() => {
-    if (callTimeoutRef.current) {
-      clearTimeout(callTimeoutRef.current);
-      callTimeoutRef.current = null;
-    }
-    
-    socketRef.current?.emit('decline-call', { to: caller?._id });
-    cleanupCall();
-  }, [caller, cleanupCall]);
-
   const endCall = useCallback(() => {
     socketRef.current?.emit('end-call', { to: callParticipant?._id });
     cleanupCall();
@@ -469,7 +470,7 @@ export function Chat() {
                       <p className="text-xs text-right opacity-50">{timeAgo(message.createdAt)}</p>
                     </div>
                   </motion.div>
-                ))}\
+                ))}
                 <div ref={messagesEndRef} />
               </div>
 
@@ -505,9 +506,9 @@ export function Chat() {
                 </div>
               </div>
             </div>
-          )}\
-        </>\
-      )}\
+          )}
+        </>
+      )}
     </div>
-  );\
+  );
 }
