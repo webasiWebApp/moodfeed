@@ -35,7 +35,7 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, '/api'),
       },
       '/socket.io': {
-        target: 'https://moodfeed-server.vercel.app/api/',
+        target: 'https://moodfeed-server.vercel.app',
         changeOrigin: true,
         secure: true,
         ws: true,
