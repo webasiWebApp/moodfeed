@@ -1,5 +1,6 @@
 {
   "name": "vite_client",
+  "proxy": "http://ec2-13-62-104-119.eu-north-1.compute.amazonaws.com",
   "private": true,
   "version": "0.0.0",
   "type": "module",

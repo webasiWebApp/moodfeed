@@ -29,13 +29,13 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'https://moodfeed-server.vercel.app',
+        target: 'http://ec2-13-62-104-119.eu-north-1.compute.amazonaws.com',
         changeOrigin: true,
         secure: true,
         rewrite: (path) => path.replace(/^\/api/, '/api'),
       },
       '/socket.io': {
-        target: 'https://moodfeed-server.vercel.app',
+        target: 'http://ec2-13-62-104-119.eu-north-1.compute.amazonaws.com',
         changeOrigin: true,
         secure: true,
         ws: true,
