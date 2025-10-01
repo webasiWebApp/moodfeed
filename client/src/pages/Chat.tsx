@@ -39,7 +39,7 @@ const stunServers = {
   ],
 };
 
-const serverUrl = 'https://moodfeed-server.vercel.app';
+const serverUrl = 'api.tharoocreationtours.com';
 
 export function Chat() {
   const { chatId } = useParams<{ chatId: string }>();
