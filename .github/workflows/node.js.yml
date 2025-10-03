@@ -10,7 +10,7 @@ jobs:
     
     strategy:
       matrix:
-        node-version: [22.x]
+        node-version: [20.x]
     
     steps:
       - uses: actions/checkout@v3
@@ -20,8 +20,9 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       
-      - name: Create .env file
+      - name: Create .env file in server directory
         run: |
+          cd server
           cat > .env << EOF
           DATABASE_URL=${{ secrets.DATABASE_URL }}
           JWT_SECRET=${{ secrets.JWT_SECRET }}
@@ -29,11 +30,14 @@ jobs:
           GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
           EOF
       
-      - name: Install dependencies
-        run: npm install
+      - name: Install server dependencies
+        run: cd server && npm install
       
-      - name: Build
-        run: npm run build --if-present
+      - name: Install client dependencies
+        run: cd client && npm install
+      
+      - name: Build client
+        run: cd client && npm run build
       
       - name: Restart PM2
         run: pm2 restart api
