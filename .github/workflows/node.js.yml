@@ -1,0 +1,39 @@
+name: Node.js CI
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: self-hosted
+    
+    strategy:
+      matrix:
+        node-version: [20.x]
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ matrix.node-version }}
+      
+      - name: Create .env file
+        run: |
+          cat > .env << EOF
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          REFRESH_TOKEN_SECRET=${{ secrets.REFRESH_TOKEN_SECRET }}
+          GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+          EOF
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Build
+        run: npm run build --if-present
+      
+      - name: Restart PM2
+        run: pm2 restart api
