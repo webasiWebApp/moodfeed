@@ -36,4 +36,4 @@ jobs:
         run: npm run build --if-present
       
       - name: Restart PM2
-        run: pm2 restart api
+        run: pm2 restart 
