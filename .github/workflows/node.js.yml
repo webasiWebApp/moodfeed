@@ -6,6 +6,7 @@ on:
 
 jobs:
   build:
+    # Running on a self-hosted runner, which has had memory issues (Exit Code 137).
     runs-on: self-hosted
     
     strategy:
@@ -13,13 +14,19 @@ jobs:
         node-version: [22.x]
     
     steps:
-      - uses: actions/checkout@v3
-      
+      - uses: actions/checkout@v4
+        # Use v4 for better stability and features
+        
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-      
+          # 1. FIX for Error: Dependencies lock file is not found (from earlier in the chat)
+          # Assuming the project's root package.json and package-lock.json are in the repository root.
+          # If your files are in a subdirectory (e.g., 'server/package-lock.json'), update the path below.
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+          
       - name: Create .env file
         run: |
           cat > .env << EOF
@@ -29,11 +36,30 @@ jobs:
           GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
           EOF
       
-      - name: Install dependencies
-        run: npm install
-      
+      - name: Install dependencies sequentially
+        # 2. FIX for Exit code 137 (Killed) due to OOM when running concurrently
+        # The 'npm install' command likely uses 'concurrently' in the 'postinstall' script.
+        # We override the main 'npm install' step to run the client and server installs sequentially.
+        run: |
+          # Note: If your client and server are in subdirectories named 'client' and 'server'
+          # you must ensure the 'npm run client-install' and 'npm run server-install' 
+          # scripts in the root package.json correctly handle the directory change.
+          npm run client-install || exit 1 # Run client first
+          npm run server-install || exit 1 # Run server second
+          
       - name: Build
         run: npm run build --if-present
-      
+        
       - name: Restart PM2
-        run: pm2 restart 
+        # 3. FIX for [PM2][ERROR] Process or Namespace api not found (from earlier in the chat)
+        # You need to ensure the process exists before trying to restart/reload it.
+        # It is safer to use 'pm2 reload <name>' if the process is known to be running, 
+        # or 'pm2 start <config>' if you want to ensure it runs correctly on the first deploy.
+        # Assuming your entry file is 'server/index.js' and you want to name it 'moodfeed-api'.
+        run: |
+          # This command ensures the process is started if it doesn't exist, and reloaded if it does.
+          # *** NOTE: Replace 'server/index.js' and '--name moodfeed-api' with your actual path and desired name.
+          pm2 start server/index.js --name moodfeed-api --update-env || true
+          
+          # Use the correct name for subsequent restarts
+          pm2 restart moodfeed-api
