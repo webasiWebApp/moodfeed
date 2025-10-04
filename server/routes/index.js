@@ -22,7 +22,7 @@ router.get("/ping", (req, res) => {
 
 router.get("/status", (req, res) => {
   console.log("Server is running 2")
-  res.status(200).send("server is running 2");
+  res.status(200).send("server is running 3");
  });
 
 module.exports = router;
