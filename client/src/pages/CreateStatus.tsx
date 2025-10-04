@@ -1,9 +1,9 @@
 import React, { useRef, useState, useEffect, useContext } from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, X, AlertCircle ,Check} from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Camera, X, AlertCircle, Check } from 'lucide-react';
 import { AuthContext } from '../contexts/AuthContext';
 import { createStatus as createStatusApi } from '../api/status';
+import { useNavigate, useParams } from 'react-router-dom';
 
 // Type definitions
 declare global {
@@ -12,12 +12,15 @@ declare global {
   }
 }
 
+const user = localStorage.getItem('user');
+
+
 const CreateStatus: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const [selectedFilter, setSelectedFilter] = useState('none');
   const [statusCaptured, setStatusCaptured] = useState(false);
-  const [status, setStatus] =useState<string | null>(null);
+  const [status, setStatus] = useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFaceDetected, setIsFaceDetected] = useState(false);
@@ -25,6 +28,9 @@ const CreateStatus: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const faceDataRef = useRef<any>(null);
+
+
+
 
   const filters = [
     { id: 'none', name: 'None' },
@@ -198,8 +204,6 @@ const CreateStatus: React.FC = () => {
       const rightEye = positions[45];
       const width = Math.abs(rightEye.x - leftEye.x) * 1.5;
       const height = width * 0.4;
-      const centerX = (leftEye.x + rightEye.x) / 2;
-      const centerY = (leftEye.y + rightEye.y) / 2;
 
       ctx.strokeStyle = '#000000';
       ctx.lineWidth = 8;
@@ -310,7 +314,6 @@ const CreateStatus: React.FC = () => {
       const top = positions[24];
       const left = positions[0];
       const right = positions[16];
-      const width = Math.abs(right.x - left.x);
 
       ctx.fillStyle = '#8B4513';
       ctx.strokeStyle = '#654321';
@@ -373,55 +376,69 @@ const CreateStatus: React.FC = () => {
     if (canvasRef.current) {
       const dataUrl = canvasRef.current.toDataURL('image/png');
       console.log('Captured image with filter:', selectedFilter);
-      setStatusCaptured(true)
+      setStatusCaptured(true);
       setStatus(dataUrl);
     }
   };
 
   const handleSave = async () => {
-    if (!status) {
-      console.error('No image to confirm. Please capture an image first.');
-      return;
-    }
 
-    try {
-      setIsLoading(true);
+    console.log("saved !!!");
+    // if (!status) {
+    //   console.error('No image to confirm. Please capture an image first.');
+    //   return;
+    // }
+
+    // if (!user?._id) {
+    //   console.error('User is not authenticated.');
+    //   return;
+    // }
+
+    // try {
+    //   setIsLoading(true);
       
-      // Convert data URL to blob more efficiently
-      const response = await fetch(status);
-      const blob = await response.blob();
+    //   // Convert data URL to blob
+    //   const response = await fetch(status);
+    //   const blob = await response.blob();
       
-      // Create image file with timestamp for uniqueness
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const file = new File([blob], `photo-${timestamp}.jpg`, { 
-        type: 'image/jpeg',
-        lastModified: Date.now()
-      });
+    //   // Create image file with timestamp
+    //   const timestamp = Date.now();
+    //   const file = new File([blob], `status-${timestamp}.png`, { 
+    //     type: 'image/png',
+    //     lastModified: timestamp
+    //   });
 
-      if (!user) {
-          console.error("User is not authenticated.");
-          return;
-      }
+    //   // Create FormData - FIXED: Convert user.id to string
+    //   const formData = new FormData();
+    //   formData.append('image', file, file.name);
+    //   formData.append('userId', String(user?._id));
+
+    //   // Debug logging
+    //   console.log('FormData contents:');
+    //   console.log('- File:', file.name, file.size, 'bytes', file.type);
+    //   console.log('- UserId:', user?._id);
       
-      const formData = new FormData();
-      formData.append('image', file);
-      formData.append('userId', user.id); // Assuming user object has an id property
+    //   // Log what's actually in FormData
+    //   for (let pair of formData.entries()) {
+    //     console.log('FormData entry:', pair[0], pair[1]);
+    //   }
 
-      const responseCreateStatus = await createStatusApi(formData);
+    //   const responseCreateStatus = await createStatusApi(formData);
 
-      if (responseCreateStatus.success) {
-          console.log("Status created successfully!");
-          navigate('/home');  // Redirect to home or another appropriate page
-      } else {
-          console.error("Failed to create status:", responseCreateStatus.error);
-      }
+    //   if (responseCreateStatus?.success) {
+    //     console.log('Status created successfully!');
+    //     navigate('/home');
+    //   } else {
+    //     console.error('Failed to create status:', responseCreateStatus?.error);
+    //     alert('Failed to create status. Please try again.');
+    //   }
 
-    } catch (error: any) {
-      console.error('Error processing captured image:', error);
-      console.error('Failed to process image. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    // } catch (error: any) {
+    //   console.error('Error processing captured image:', error);
+    //   alert('Failed to process image. Please try again.');
+    // } finally {
+    //   setIsLoading(false);
+    // }
   };
 
   const handleClose = () => {
@@ -429,7 +446,7 @@ const CreateStatus: React.FC = () => {
       const stream = videoRef.current.srcObject as MediaStream;
       stream.getTracks().forEach(track => track.stop());
     }
-    navigate('/home');
+    navigate('/');
   };
 
   return (
@@ -514,22 +531,18 @@ const CreateStatus: React.FC = () => {
           <Camera className="w-8 h-8" />
         </Button>
 
-          {statusCaptured && ( 
-            <Button 
-              variant="outline" 
-              size="icon" 
-              className="w-16 h-16 rounded-full border-4 border-white bg-transparent hover:bg-white/10 hover:scale-110 transition-transform"
-              onClick={handleSave}
-              disabled={isLoading || !!cameraError}
-            >
-              <Check className="w-8 h-8" />
-            </Button>
-
-          )}
-
+        {statusCaptured && ( 
+          <Button 
+            variant="outline" 
+            size="icon" 
+            className="w-16 h-16 rounded-full border-4 border-white bg-transparent hover:bg-white/10 hover:scale-110 transition-transform"
+            onClick={handleSave}
+            disabled={isLoading || !!cameraError}
+          >
+            <Check className="w-8 h-8" />
+          </Button>
+        )}
       </div>
-
-         
       
       {selectedFilter !== 'none' && !isLoading && (
         <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">

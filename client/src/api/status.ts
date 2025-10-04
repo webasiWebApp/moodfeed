@@ -2,6 +2,7 @@ import api  from './api';
 
 export const createStatus = async (content: object) => {
   try {
+    
     const response = await api.post('/statuses/create', { content});
     return response.data;
   } catch (error: any) {
