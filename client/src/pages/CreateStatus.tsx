@@ -2,10 +2,10 @@ import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Camera, X, AlertCircle } from 'lucide-react';
 
-// Type definitions for Jeeliz FaceFilter
+// Type definitions
 declare global {
   interface Window {
-    JEELIZFACEFILTER: any;
+    faceapi: any;
   }
 }
 
@@ -14,24 +14,63 @@ const CreateStatus: React.FC = () => {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFaceDetected, setIsFaceDetected] = useState(false);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const faceDataRef = useRef<any>(null);
 
   const filters = [
     { id: 'none', name: 'None' },
-    { id: 'grayscale', name: 'Grayscale' },
-    { id: 'sepia', name: 'Sepia' },
-    { id: 'invert', name: 'Invert' },
-    { id: 'blur', name: 'Blur' },
-    { id: 'brightness', name: 'Bright' },
-    { id: 'contrast', name: 'Contrast' },
-    { id: 'saturate', name: 'Saturate' },
+    { id: 'glasses', name: 'Glasses' },
+    { id: 'mask', name: 'Mask' },
+    { id: 'crown', name: 'Crown' },
+    { id: 'hat', name: 'Hat' },
+    { id: 'dogears', name: 'Dog Ears' },
+    { id: 'mustache', name: 'Mustache' },
   ];
 
   useEffect(() => {
     let mounted = true;
     let animationId: number;
+
+    const loadFaceAPI = async () => {
+      try {
+        // Load face-api.js
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/dist/face-api.min.js';
+        script.async = true;
+        
+        script.onload = async () => {
+          if (!mounted) return;
+          
+          // Load models
+          const MODEL_URL = 'https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.12/model';
+          
+          await window.faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+          await window.faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+          
+          if (mounted) {
+            setModelsLoaded(true);
+            startCamera();
+          }
+        };
+        
+        script.onerror = () => {
+          if (mounted) {
+            setCameraError('Failed to load face detection library');
+            setIsLoading(false);
+          }
+        };
+        
+        document.body.appendChild(script);
+      } catch (err) {
+        console.error('Error loading face-api:', err);
+        if (mounted) {
+          setCameraError('Failed to initialize AR filters');
+          setIsLoading(false);
+        }
+      }
+    };
 
     const startCamera = async () => {
       try {
@@ -46,7 +85,7 @@ const CreateStatus: React.FC = () => {
             if (videoRef.current) {
               videoRef.current.play();
               setIsLoading(false);
-              startRendering();
+              detectFaces();
             }
           };
         }
@@ -59,74 +98,258 @@ const CreateStatus: React.FC = () => {
       }
     };
 
-    const startRendering = () => {
-      const render = () => {
-        if (!mounted || !videoRef.current || !canvasRef.current) return;
+    const detectFaces = async () => {
+      if (!videoRef.current || !canvasRef.current || !window.faceapi) return;
 
-        const video = videoRef.current;
-        const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const displaySize = { width: video.videoWidth, height: video.videoHeight };
 
-        if (ctx && video.readyState === video.HAVE_ENOUGH_DATA) {
-          // Set canvas size to match video
-          if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-          }
+      canvas.width = displaySize.width;
+      canvas.height = displaySize.height;
 
-          // Apply filter
-          applyFilter(ctx);
-          
-          // Draw video frame
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const detect = async () => {
+        if (!mounted || !video || !canvas) return;
+
+        const detections = await window.faceapi
+          .detectSingleFace(video, new window.faceapi.TinyFaceDetectorOptions())
+          .withFaceLandmarks();
+
+        if (detections) {
+          faceDataRef.current = detections;
+          setIsFaceDetected(true);
+        } else {
+          faceDataRef.current = null;
+          setIsFaceDetected(false);
         }
 
-        animationId = requestAnimationFrame(render);
+        drawFrame();
+        animationId = requestAnimationFrame(detect);
       };
 
-      render();
+      detect();
     };
 
-    const applyFilter = (ctx: CanvasRenderingContext2D) => {
-      switch(selectedFilter) {
-        case 'grayscale':
-          ctx.filter = 'grayscale(100%)';
-          break;
-        case 'sepia':
-          ctx.filter = 'sepia(100%)';
-          break;
-        case 'invert':
-          ctx.filter = 'invert(100%)';
-          break;
-        case 'blur':
-          ctx.filter = 'blur(3px)';
-          break;
-        case 'brightness':
-          ctx.filter = 'brightness(150%)';
-          break;
-        case 'contrast':
-          ctx.filter = 'contrast(200%)';
-          break;
-        case 'saturate':
-          ctx.filter = 'saturate(300%)';
-          break;
-        default:
-          ctx.filter = 'none';
+    const drawFrame = () => {
+      if (!videoRef.current || !canvasRef.current) return;
+
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+
+      if (!ctx) return;
+
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Draw video
+      ctx.save();
+      ctx.scale(-1, 1); // Mirror for selfie view
+      ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+      ctx.restore();
+
+      // Draw AR filter if face detected
+      if (faceDataRef.current && selectedFilter !== 'none') {
+        drawARFilter(ctx, faceDataRef.current);
       }
     };
 
-    startCamera();
+    const drawARFilter = (ctx: CanvasRenderingContext2D, detection: any) => {
+      const landmarks = detection.landmarks;
+      const positions = landmarks.positions;
 
-    // Simulate face detection (you can integrate actual face detection if needed)
-    const faceDetectionInterval = setInterval(() => {
-      if (mounted && !isLoading && !cameraError) {
-        setIsFaceDetected(true);
+      ctx.save();
+      ctx.scale(-1, 1); // Mirror coordinates
+      ctx.translate(-ctx.canvas.width, 0);
+
+      switch (selectedFilter) {
+        case 'glasses':
+          drawGlasses(ctx, positions);
+          break;
+        case 'mask':
+          drawMask(ctx, positions);
+          break;
+        case 'crown':
+          drawCrown(ctx, positions);
+          break;
+        case 'hat':
+          drawHat(ctx, positions);
+          break;
+        case 'dogears':
+          drawDogEars(ctx, positions);
+          break;
+        case 'mustache':
+          drawMustache(ctx, positions);
+          break;
       }
-    }, 1000);
+
+      ctx.restore();
+    };
+
+    const drawGlasses = (ctx: CanvasRenderingContext2D, positions: any[]) => {
+      const leftEye = positions[36];
+      const rightEye = positions[45];
+      const width = Math.abs(rightEye.x - leftEye.x) * 1.5;
+      const height = width * 0.4;
+      const centerX = (leftEye.x + rightEye.x) / 2;
+      const centerY = (leftEye.y + rightEye.y) / 2;
+
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 8;
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+
+      // Left lens
+      ctx.beginPath();
+      ctx.ellipse(leftEye.x, leftEye.y, width / 4, height / 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Right lens
+      ctx.beginPath();
+      ctx.ellipse(rightEye.x, rightEye.y, width / 4, height / 2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Bridge
+      ctx.beginPath();
+      ctx.moveTo(leftEye.x + width / 4, leftEye.y);
+      ctx.lineTo(rightEye.x - width / 4, rightEye.y);
+      ctx.stroke();
+    };
+
+    const drawMask = (ctx: CanvasRenderingContext2D, positions: any[]) => {
+      const nose = positions[30];
+      const leftCheek = positions[1];
+      const rightCheek = positions[15];
+      const chin = positions[8];
+
+      const width = Math.abs(rightCheek.x - leftCheek.x);
+      const height = Math.abs(chin.y - nose.y) * 1.2;
+
+      ctx.fillStyle = '#4A90E2';
+      ctx.strokeStyle = '#FFFFFF';
+      ctx.lineWidth = 2;
+
+      ctx.beginPath();
+      ctx.ellipse(
+        (leftCheek.x + rightCheek.x) / 2,
+        (nose.y + chin.y) / 2,
+        width / 2,
+        height / 2,
+        0,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+      ctx.stroke();
+    };
+
+    const drawCrown = (ctx: CanvasRenderingContext2D, positions: any[]) => {
+      const top = positions[24];
+      const left = positions[0];
+      const right = positions[16];
+      const width = Math.abs(right.x - left.x);
+      const centerX = (left.x + right.x) / 2;
+      const crownY = top.y - width * 0.4;
+
+      ctx.fillStyle = '#FFD700';
+      ctx.strokeStyle = '#FFA500';
+      ctx.lineWidth = 3;
+
+      // Crown base
+      ctx.beginPath();
+      ctx.moveTo(centerX - width / 3, crownY);
+      ctx.lineTo(centerX + width / 3, crownY);
+      ctx.lineTo(centerX + width / 3, crownY + 30);
+      ctx.lineTo(centerX - width / 3, crownY + 30);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Crown peaks
+      for (let i = 0; i < 3; i++) {
+        const x = centerX - width / 4 + (i * width / 4);
+        ctx.beginPath();
+        ctx.moveTo(x - 15, crownY);
+        ctx.lineTo(x, crownY - 30);
+        ctx.lineTo(x + 15, crownY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+      }
+    };
+
+    const drawHat = (ctx: CanvasRenderingContext2D, positions: any[]) => {
+      const top = positions[24];
+      const left = positions[0];
+      const right = positions[16];
+      const width = Math.abs(right.x - left.x);
+      const centerX = (left.x + right.x) / 2;
+      const hatY = top.y - width * 0.5;
+
+      ctx.fillStyle = '#000000';
+      ctx.strokeStyle = '#333333';
+      ctx.lineWidth = 2;
+
+      // Hat brim
+      ctx.fillRect(centerX - width / 2.5, hatY + 40, width / 1.25, 10);
+
+      // Hat top
+      ctx.fillRect(centerX - width / 4, hatY - 40, width / 2, 80);
+      ctx.strokeRect(centerX - width / 4, hatY - 40, width / 2, 80);
+    };
+
+    const drawDogEars = (ctx: CanvasRenderingContext2D, positions: any[]) => {
+      const top = positions[24];
+      const left = positions[0];
+      const right = positions[16];
+      const width = Math.abs(right.x - left.x);
+
+      ctx.fillStyle = '#8B4513';
+      ctx.strokeStyle = '#654321';
+      ctx.lineWidth = 2;
+
+      // Left ear
+      ctx.beginPath();
+      ctx.moveTo(left.x + 20, top.y - 20);
+      ctx.lineTo(left.x - 30, top.y - 60);
+      ctx.lineTo(left.x - 20, top.y + 30);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      // Right ear
+      ctx.beginPath();
+      ctx.moveTo(right.x - 20, top.y - 20);
+      ctx.lineTo(right.x + 30, top.y - 60);
+      ctx.lineTo(right.x + 20, top.y + 30);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    };
+
+    const drawMustache = (ctx: CanvasRenderingContext2D, positions: any[]) => {
+      const nose = positions[33];
+      const width = 80;
+      const height = 30;
+
+      ctx.fillStyle = '#000000';
+
+      // Left side
+      ctx.beginPath();
+      ctx.ellipse(nose.x - 20, nose.y + 10, width / 2, height / 2, -0.3, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Right side
+      ctx.beginPath();
+      ctx.ellipse(nose.x + 20, nose.y + 10, width / 2, height / 2, 0.3, 0, Math.PI * 2);
+      ctx.fill();
+    };
+
+    loadFaceAPI();
 
     return () => {
       mounted = false;
-      clearInterval(faceDetectionInterval);
       if (animationId) {
         cancelAnimationFrame(animationId);
       }
@@ -137,7 +360,7 @@ const CreateStatus: React.FC = () => {
         stream.getTracks().forEach(track => track.stop());
       }
     };
-  }, [selectedFilter, isLoading, cameraError]);
+  }, [selectedFilter]);
 
   const handleCapture = () => {
     if (canvasRef.current) {
@@ -184,7 +407,7 @@ const CreateStatus: React.FC = () => {
           <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-              <p className="text-lg">Initializing camera...</p>
+              <p className="text-lg">Loading AR filters...</p>
             </div>
           </div>
         )}
@@ -209,9 +432,6 @@ const CreateStatus: React.FC = () => {
             <canvas 
               ref={canvasRef}
               className="w-full h-full object-cover"
-              style={{
-                transform: 'scaleX(-1)' // Mirror effect for selfie view
-              }}
             />
           </>
         )}
@@ -247,7 +467,7 @@ const CreateStatus: React.FC = () => {
       
       {selectedFilter !== 'none' && !isLoading && (
         <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
-          <p className="text-sm text-white">{filters.find(f => f.id === selectedFilter)?.name} filter active</p>
+          <p className="text-sm text-white">{filters.find(f => f.id === selectedFilter)?.name}</p>
         </div>
       )}
     </div>
