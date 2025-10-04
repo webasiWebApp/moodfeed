@@ -1,8 +1,8 @@
 import api  from './api';
 
-export const createStatus = async (content: string, type: string) => {
+export const createStatus = async (content: string, userId: string) => {
   try {
-    const response = await api.post('/statuses', { content, type });
+    const response = await api.post('/statuses/create', { content, type });
     return response.data;
   } catch (error: any) {
     throw error.response?.data?.message || 'Failed to create status';

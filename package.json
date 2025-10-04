@@ -17,6 +17,7 @@
   "description": "",
   "dependencies": {
     "concurrently": "^9.1.0",
+    "multer": "^2.0.2",
     "simple-peer": "^4.2.1"
   },
   "devDependencies": {
