@@ -16,6 +16,7 @@ async function getStatuses(userId) {
   return statuses;
 }
 
+
 module.exports = {
   createStatus,
   getStatuses,
