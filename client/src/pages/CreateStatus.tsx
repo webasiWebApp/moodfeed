@@ -1,6 +1,9 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useContext } from 'react';
 import { Button } from '@/components/ui/button';
 import { Camera, X, AlertCircle ,Check} from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../contexts/AuthContext';
+import { createStatus as createStatusApi } from '../api/status';
 
 // Type definitions
 declare global {
@@ -10,6 +13,8 @@ declare global {
 }
 
 const CreateStatus: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
   const [selectedFilter, setSelectedFilter] = useState('none');
   const [statusCaptured, setStatusCaptured] = useState(false);
   const [status, setStatus] =useState<string | null>(null);
@@ -373,7 +378,7 @@ const CreateStatus: React.FC = () => {
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!status) {
       console.error('No image to confirm. Please capture an image first.');
       return;
@@ -392,13 +397,31 @@ const CreateStatus: React.FC = () => {
         type: 'image/jpeg',
         lastModified: Date.now()
       });
+
+      if (!user) {
+          console.error("User is not authenticated.");
+          return;
+      }
       
-     
-    } catch (error) {
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('userId', user.id); // Assuming user object has an id property
+
+      const responseCreateStatus = await createStatusApi(formData);
+
+      if (responseCreateStatus.success) {
+          console.log("Status created successfully!");
+          navigate('/home');  // Redirect to home or another appropriate page
+      } else {
+          console.error("Failed to create status:", responseCreateStatus.error);
+      }
+
+    } catch (error: any) {
       console.error('Error processing captured image:', error);
       console.error('Failed to process image. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
-   console.log("saved");
   };
 
   const handleClose = () => {
@@ -406,7 +429,7 @@ const CreateStatus: React.FC = () => {
       const stream = videoRef.current.srcObject as MediaStream;
       stream.getTracks().forEach(track => track.stop());
     }
-    console.log('Closing camera');
+    navigate('/home');
   };
 
   return (
@@ -486,7 +509,7 @@ const CreateStatus: React.FC = () => {
           size="icon" 
           className="w-16 h-16 rounded-full border-4 border-white bg-transparent hover:bg-white/10 hover:scale-110 transition-transform"
           onClick={handleCapture}
-          disabled={isLoading || !!cameraError}
+          disabled={isLoading || !!cameraError || statusCaptured}
         >
           <Camera className="w-8 h-8" />
         </Button>
