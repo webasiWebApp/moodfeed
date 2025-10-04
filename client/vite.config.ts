@@ -29,13 +29,13 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'https://api.tharoocreationtours.com',
+        target: 'https://tharoocreationtours.com',
         changeOrigin: true,
         secure: true,
         rewrite: (path) => path.replace(/^\/api/, '/api'),
       },
       '/socket.io': {
-        target: 'https://api.tharoocreationtours.com',
+        target: 'https://tharoocreationtours.com',
         changeOrigin: true,
         secure: true,
         ws: true,

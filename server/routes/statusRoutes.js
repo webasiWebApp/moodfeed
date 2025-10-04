@@ -26,9 +26,9 @@ const upload = multer({ storage: storage });
 
 router.post('/create', upload.single('image'), async (req, res) => {
   try {
-    const userId = req.user.userId;
+    const userId = req.userId;
     // Check if a file was uploaded
-    if (!req.file) {
+    if (!req.image) {
       return res.status(400).json({ message: 'No image file provided' });
     }
     const content = req.file.path; // The path to the uploaded image
