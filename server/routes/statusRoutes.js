@@ -3,7 +3,7 @@ const router = express.Router();
 const statusService = require('../services/statusService');
 const authMiddleware = require('./middleware/auth');
 
-router.post('/', authMiddleware, async (req, res) => {
+router.post('/', async (req, res) => {
   try {
     const { content, type } = req.body;
     const userId = req.user.userId;
@@ -15,7 +15,7 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
-router.get('/', authMiddleware, async (req, res) => {
+router.post('/', async (req, res) => {
 
   res.status(200).send("status is work");
   // try {
