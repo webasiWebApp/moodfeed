@@ -24,7 +24,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-router.post('/create', authMiddleware, upload.single('image'), async (req, res) => {
+router.post('/create', upload.single('image'), async (req, res) => {
   try {
     const userId = req.user.userId;
     // Check if a file was uploaded
@@ -42,7 +42,7 @@ router.post('/create', authMiddleware, upload.single('image'), async (req, res) 
   }
 });
 
-router.get('/', authMiddleware, async (req, res) => {
+router.get('/',async (req, res) => {
   try {
     const statuses = await statusService.getStatuses(req.user.userId);
     res.status(200).json(statuses);
