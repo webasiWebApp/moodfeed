@@ -6,10 +6,13 @@ import App from './App.tsx'
 
 const queryClient = new QueryClient()
 
+document.documentElement.requestFullscreen();
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <App />
+      
     </QueryClientProvider>
   </StrictMode>,
 )

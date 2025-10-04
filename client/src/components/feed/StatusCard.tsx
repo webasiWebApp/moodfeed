@@ -13,7 +13,7 @@ interface StatusCardProps {
 
 const StatusCard: React.FC<StatusCardProps> = ({ isCurrentUser = false, user, onClick }) => {
   return (
-    <div className="flex flex-col items-center space-y-1 flex-shrink-0 w-20" onClick={onClick}>
+    <div className="flex flex-col items-center space-y-1 flex-shrink-0 w-18" onClick={onClick}>
       <div className="relative">
         <Avatar className="w-16 h-16 border-2 border-pink-500">
           <AvatarImage src={user?.avatarUrl} alt={user?.name} />
@@ -25,7 +25,7 @@ const StatusCard: React.FC<StatusCardProps> = ({ isCurrentUser = false, user, on
           </div>
         )}
       </div>
-      <p className="text-xs text-white truncate">{isCurrentUser ? 'You' : user?.name}</p>
+   <p className="text-xs text-white truncate">{isCurrentUser ? 'You' : user?.name && user.name.length > 10 ? user.name.substring(0, 8) + ".." : user?.name }</p>
     </div>
   );
 };

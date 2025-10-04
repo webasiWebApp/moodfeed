@@ -51,6 +51,7 @@
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.5.1",
+    "facefilter": "^3.4.3",
     "framer-motion": "^12.23.12",
     "input-otp": "^1.4.1",
     "json-bigint": "^1.0.0",
@@ -69,6 +70,7 @@
     "stream-browserify": "^3.0.0",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",
+    "three": "^0.180.0",
     "vaul": "^1.1.1",
     "vite-plugin-node-polyfills": "^0.24.0",
     "zod": "^3.25.76"
@@ -79,6 +81,7 @@
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@types/simple-peer": "^9.11.8",
+    "@types/three": "^0.180.0",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.20",
     "eslint": "^9.13.0",
