@@ -21,7 +21,7 @@ router.get("/ping", (req, res) => {
 });
 
 router.get("/status", (req, res) => {
-  console.log("Server is running")
+  console.log("Server is running 1")
   res.status(200).send("server is running 1");
  });
 
