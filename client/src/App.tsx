@@ -14,7 +14,8 @@ import { ProfileSettings } from "./pages/ProfileSettings"
 import { BlankPage } from "./pages/BlankPage"
 import { Messages } from "./pages/Messages"
 import { Chat } from "./pages/Chat"
-import { ChatProvider } from "./contexts/ChatContext"
+import { ChatProvider } from "./contexts/ChatContext";
+import CreateStatus from "./pages/CreateStatus";
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
           <Route path="/chat/:chatId" element={<ProtectedRoute><Chat /></ProtectedRoute>} />
           <Route path="/post/:postId" element={<ProtectedRoute><Layout><PostDetail /></Layout></ProtectedRoute>} />
           <Route path="/settings/profile" element={<ProtectedRoute><Layout><ProfileSettings /></Layout></ProtectedRoute>} />
+          <Route path="/create-status" element={<ProtectedRoute><CreateStatus /></ProtectedRoute>} />
           <Route path="*" element={<BlankPage />} />
         </Routes>
       </Router>

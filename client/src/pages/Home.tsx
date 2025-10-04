@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/useToast';
 import { useNavigate } from 'react-router-dom';
 import { startConversation } from '@/api/chat';
 import { useAuth } from '@/contexts/AuthContext';
+import StatusList from '../components/feed/StatusList';
 
 const fetchPosts = async ({ pageParam = 1 }) => {
   const response = await getFeedPosts(pageParam, 10) as any;
@@ -226,8 +227,9 @@ export const Home: React.FC = () => {
         />
       </div>
 
-      <div className="pt-40 pb-2">
-        <div className="flex flex-col items-center gap-4">
+      <div className="pt-20 pb-2">
+        <StatusList />
+        <div className="flex flex-col items-center gap-4 mt-4">
           {posts.map((post, index) => (
             <div 
               ref={node => {
