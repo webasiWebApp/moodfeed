@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Camera, X, AlertCircle } from 'lucide-react';
+import { Camera, X, AlertCircle ,Check} from 'lucide-react';
 
 // Type definitions
 declare global {
@@ -11,6 +11,8 @@ declare global {
 
 const CreateStatus: React.FC = () => {
   const [selectedFilter, setSelectedFilter] = useState('none');
+  const [statusCaptured, setStatusCaptured] = useState(false);
+  const [status, setStatus] =useState<string | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFaceDetected, setIsFaceDetected] = useState(false);
@@ -366,12 +368,37 @@ const CreateStatus: React.FC = () => {
     if (canvasRef.current) {
       const dataUrl = canvasRef.current.toDataURL('image/png');
       console.log('Captured image with filter:', selectedFilter);
-      
-      const link = document.createElement('a');
-      link.download = `status-${Date.now()}.png`;
-      link.href = dataUrl;
-      link.click();
+      setStatusCaptured(true)
+      setStatus(dataUrl);
     }
+  };
+
+  const handleSave = () => {
+    if (!status) {
+      console.error('No image to confirm. Please capture an image first.');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      
+      // Convert data URL to blob more efficiently
+      const response = await fetch(status);
+      const blob = await response.blob();
+      
+      // Create image file with timestamp for uniqueness
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const file = new File([blob], `photo-${timestamp}.jpg`, { 
+        type: 'image/jpeg',
+        lastModified: Date.now()
+      });
+      
+     
+    } catch (error) {
+      console.error('Error processing captured image:', error);
+      console.error('Failed to process image. Please try again.');
+    }
+   console.log("saved");
   };
 
   const handleClose = () => {
@@ -463,7 +490,23 @@ const CreateStatus: React.FC = () => {
         >
           <Camera className="w-8 h-8" />
         </Button>
+
+          {statusCaptured && ( 
+            <Button 
+              variant="outline" 
+              size="icon" 
+              className="w-16 h-16 rounded-full border-4 border-white bg-transparent hover:bg-white/10 hover:scale-110 transition-transform"
+              onClick={handleSave}
+              disabled={isLoading || !!cameraError}
+            >
+              <Check className="w-8 h-8" />
+            </Button>
+
+          )}
+
       </div>
+
+         
       
       {selectedFilter !== 'none' && !isLoading && (
         <div className="absolute bottom-24 left-1/2 transform -translate-x-1/2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-2">
