@@ -3,11 +3,13 @@ const router = express.Router();
 const authRoutes = require('./authRoutes');
 const userRoutes = require('./userRoutes');
 const postRoutes = require('./postRoutes');
+const statusRoutes = require('./statusRoutes');
 
 // Routes
 router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/posts', postRoutes);
+router.use('/statuses', statusRoutes);
 
 // Root path response
 router.get("/", (req, res) => {
