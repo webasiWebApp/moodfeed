@@ -3,7 +3,7 @@ import JSONbig from 'json-bigint';
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: 'https://tharoocreationtours.com/api/',
+  baseURL: "https://3000-firebase-moodfeed-1757952544072.cluster-owzhzna3l5cj6tredjpnwucna4.cloudworkstations.dev/api/",
   headers: {
     'Content-Type': 'application/json',
   },

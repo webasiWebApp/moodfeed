@@ -26,16 +26,16 @@ export default defineConfig({
   },
   server: {
     host: true,
-    port: 3000,
+    port: 5173,
     proxy: {
       '/api': {
-        target: 'https://tharoocreationtours.com',
+        target: "https://3000-firebase-moodfeed-1757952544072.cluster-owzhzna3l5cj6tredjpnwucna4.cloudworkstations.dev",
         changeOrigin: true,
         secure: true,
         rewrite: (path) => path.replace(/^\/api/, '/api'),
       },
       '/socket.io': {
-        target: 'https://tharoocreationtours.com',
+        target: "https://3000-firebase-moodfeed-1757952544072.cluster-owzhzna3l5cj6tredjpnwucna4.cloudworkstations.dev",
         changeOrigin: true,
         secure: true,
         ws: true,

@@ -23,6 +23,8 @@ interface ErrorResponse {
 // Response: { user: User, accessToken: string, refreshToken: string }
 export const login = async (email: string, password: string): Promise<AuthResponse> => {
   try {
+
+    
     const response = await api.post<AuthResponse>('/auth/login', { email, password });
     
     if (!response.data?.accessToken || !response.data?.refreshToken || !response.data?.user) {
