@@ -1,58 +1,74 @@
-const path = require('path');
-const fs = require('fs').promises;
+const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 const crypto = require('crypto');
+const path = require('path');
+
+// Configure S3 client
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION, // e.g., 'us-east-1'
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+
+const S3_BUCKET_NAME = process.env.S3_BUCKET_NAME;
 
 class UploadService {
-  static uploadDir = path.join(__dirname, '..', 'userUploadedFilesForPost');
-
-  static async initialize() {
-    try {
-      await fs.access(this.uploadDir);
-    } catch {
-      // Directory doesn't exist, create it
-      await fs.mkdir(this.uploadDir, { recursive: true });
-    }
-  }
-
   static async uploadFile(file) {
     try {
-      // Ensure upload directory exists
-      await this.initialize();
+      if (!S3_BUCKET_NAME) {
+        throw new Error('S3_BUCKET_NAME is not defined in environment variables.');
+      }
 
-      // Generate unique filename using date and random bytes for uniqueness
-      const fileExtension = path.extname(file.originalname);
+      const fileExtension = path.extname(file.name || file.originalname);
       const uniqueFilename = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${fileExtension}`;
-      const filePath = path.join(this.uploadDir, uniqueFilename);
-      const publicUrl = `/userUploadedFilesForPost/${uniqueFilename}`;
+      const s3Key = `userUploadedFilesForPost/${uniqueFilename}`;
 
-      // Move file to upload directory
-      await fs.writeFile(filePath, file.buffer);
+      const params = {
+        Bucket: S3_BUCKET_NAME,
+        Key: s3Key,
+        Body: file.data || file.buffer,
+        ContentType: file.mimetype,
+        ACL: 'public-read', // Make the uploaded file publicly accessible
+      };
 
-      // Return both the public URL and local file path
+      await s3Client.send(new PutObjectCommand(params));
+
+      const publicUrl = `https://${S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${s3Key}`;
+
       return {
         publicUrl,
-        localPath: filePath,
-        mediaType: file.mimetype.startsWith('image/') ? 'image' : 'video'
+        mediaType: file.mimetype.startsWith('image/') ? 'image' : 'video',
       };
     } catch (error) {
-      console.error('Error uploading file:', error);
-      throw new Error('Failed to upload file');
+      console.error('Error uploading file to S3:', error);
+      throw new Error('Failed to upload file to S3');
     }
   }
 
   static async deleteFile(fileUrl) {
     try {
-      if (!fileUrl) return;
+      if (!fileUrl || !S3_BUCKET_NAME) {
+        console.warn('File URL or S3_BUCKET_NAME not provided for deletion.');
+        return;
+      }
 
-      // Extract filename from URL
-      const filename = path.basename(fileUrl);
-      const filePath = path.join(this.uploadDir, filename);
+      // Extract the S3 key from the public URL
+      const urlParts = fileUrl.split(`https://${S3_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/`);
+      if (urlParts.length < 2) {
+        console.warn('Invalid S3 file URL provided for deletion:', fileUrl);
+        return;
+      }
+      const s3Key = urlParts[1];
 
-      // Check if file exists before attempting to delete
-      await fs.access(filePath);
-      await fs.unlink(filePath);
+      const params = {
+        Bucket: S3_BUCKET_NAME,
+        Key: s3Key,
+      };
+
+      await s3Client.send(new DeleteObjectCommand(params));
     } catch (error) {
-      console.error('Error deleting file:', error);
+      console.error('Error deleting file from S3:', error);
       // Don't throw error for delete operations
     }
   }
