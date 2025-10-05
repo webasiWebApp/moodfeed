@@ -222,7 +222,7 @@ export const Home: React.FC = () => {
       
       <div className="w-full bg-gradient-to-b from-black to-transparent flex items-center justify-center fixed top-0 left-1/2 transform -translate-x-1/2 z-50 px-4 py-6">
         <img 
-          src="/src/assets/moodfeedLogo.png" 
+          src="https://moodfeedbucket.s3.eu-north-1.amazonaws.com/userUploadedFilesForPost/moodfeedLogo.png" 
           alt="MoodFeed Logo" 
           className="h-12 w-auto object-contain drop-shadow-lg"
         />
