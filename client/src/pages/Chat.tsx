@@ -39,7 +39,7 @@ const stunServers = {
   ],
 };
 
-const serverUrl = 'http://localhost:3000';
+const serverUrl = 'https://api.tharoocreationtours.com';
 
 export function Chat() {
   const { chatId } = useParams<{ chatId: string }>();

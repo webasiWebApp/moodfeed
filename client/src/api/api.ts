@@ -3,7 +3,7 @@ import JSONbig from 'json-bigint';
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: "http://localhost:3000/api/",
+  baseURL: "https://api.tharoocreationtours.com/api/",
   headers: {
     'Content-Type': 'application/json',
   },
