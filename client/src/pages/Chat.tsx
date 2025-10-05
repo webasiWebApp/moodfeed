@@ -39,7 +39,7 @@ const stunServers = {
   ],
 };
 
-const serverUrl = 'api.tharoocreationtours.com';
+const serverUrl = 'http://localhost:3000';
 
 export function Chat() {
   const { chatId } = useParams<{ chatId: string }>();
@@ -470,7 +470,7 @@ export function Chat() {
                       <p className="text-xs text-right opacity-50">{timeAgo(message.createdAt)}</p>
                     </div>
                   </motion.div>
-                ))}\
+                ))}
                 <div ref={messagesEndRef} />
               </div>
 

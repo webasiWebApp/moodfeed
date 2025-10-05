@@ -29,13 +29,13 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: "https://3000-firebase-moodfeed-1757952544072.cluster-owzhzna3l5cj6tredjpnwucna4.cloudworkstations.dev",
+        target: "http://localhost:3000",
         changeOrigin: true,
         secure: true,
         rewrite: (path) => path.replace(/^\/api/, '/api'),
       },
       '/socket.io': {
-        target: "https://3000-firebase-moodfeed-1757952544072.cluster-owzhzna3l5cj6tredjpnwucna4.cloudworkstations.dev",
+        target: "http://localhost:3000",
         changeOrigin: true,
         secure: true,
         ws: true,
