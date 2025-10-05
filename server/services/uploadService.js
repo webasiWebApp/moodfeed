@@ -29,7 +29,7 @@ class UploadService {
         Key: s3Key,
         Body: file.data || file.buffer,
         ContentType: file.mimetype,
-        ACL: 'public-read', // Make the uploaded file publicly accessible
+        ACL: 'public-read',
       };
 
       await s3Client.send(new PutObjectCommand(params));
