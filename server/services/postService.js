@@ -9,7 +9,7 @@ const transformPost = (post, user) => {
 
     // Check if mediaUrl needs prefixing
     if (postObject.mediaUrl && !postObject.mediaUrl.startsWith('http')) {
-        postObject.mediaUrl = `http://localhost:3000/uploads/${postObject.mediaUrl.split('/').pop()}`;
+        postObject.mediaUrl = `https://tharoocreationtours.com/uploads/${postObject.mediaUrl.split('/').pop()}`;
     }
 
     return {
@@ -62,6 +62,8 @@ class PostService {
 
             const user = await User.findById(userId).select('likedPosts').lean();
             const transformedPosts = recommendedPosts.map(post => transformPost(post, user));
+
+            // console.log(transformedPosts)
             return { posts: transformedPosts, hasMore: recommendedPosts.length > 0 };
         } catch (error) {
             console.error('Error getting recommendations, falling back to chronological feed:', error);
@@ -94,7 +96,7 @@ class PostService {
       post.likes = Array.isArray(post.likes) ? post.likes.length : 0;
       post.comments = Array.isArray(post.comments) ? post.comments.length : 0;
        if (post.mediaUrl && !post.mediaUrl.startsWith('http')) {
-        post.mediaUrl = `http://localhost:3000/uploads/${post.mediaUrl.split('/').pop()}`;
+        post.mediaUrl = `https://tharoocreationtours.com/uploads/${post.mediaUrl.split('/').pop()}`;
     }
     });
     

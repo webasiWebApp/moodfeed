@@ -219,7 +219,8 @@ export const Home: React.FC = () => {
 
   return (
     <div className="min-h-screen gradient-bg">
-      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 px-4 py-2">
+      
+      <div className="w-full bg-gradient-to-b from-black to-transparent flex items-center justify-center fixed top-0 left-1/2 transform -translate-x-1/2 z-50 px-4 py-6">
         <img 
           src="/src/assets/moodfeedLogo.png" 
           alt="MoodFeed Logo" 

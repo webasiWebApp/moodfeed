@@ -15,7 +15,7 @@ const StatusCard: React.FC<StatusCardProps> = ({ isCurrentUser = false, user, on
   return (
     <div className="flex flex-col items-center space-y-1 flex-shrink-0 w-18" onClick={onClick}>
       <div className="relative">
-        <Avatar className="w-16 h-16 border-2 border-pink-500">
+        <Avatar className="w-16 h-16 border-2 border-green-500">
           <AvatarImage src={user?.avatarUrl} alt={user?.name} />
           <AvatarFallback>{user?.name?.[0]}</AvatarFallback>
         </Avatar>

@@ -139,10 +139,10 @@ export const PostCard: React.FC<PostCardProps> = ({
         </div>
       </div>
 
-      <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 flex space-x-4 text-white/50">
+      {/* <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 flex space-x-4 text-white/50">
         <div className="flex items-center space-x-1"><span>←</span><span className="text-xs">Not for me</span></div>
         <div className="flex items-center space-x-1"><span className="text-xs">Quick comment</span><span>→</span></div>
-      </div>
+      </div> */}
     </motion.div>
   );
 };
