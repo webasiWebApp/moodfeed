@@ -58,9 +58,75 @@ export const CallComponent: React.FC<CallComponentProps> = ({
   }, [localStream]);
 
   useEffect(() => {
-    if (remoteVideoRef.current && remoteStream) {
-      remoteVideoRef.current.srcObject = remoteStream;
+    const videoEl = remoteVideoRef.current;
+    if (!videoEl) return;
+
+    if (!remoteStream) {
+      // Clear srcObject when no remote stream
+      videoEl.srcObject = null;
+      return;
     }
+
+    // Diagnostic: log tracks so we can spot missing video tracks
+    try {
+      console.debug('Remote stream set, videoTracks:', remoteStream.getVideoTracks(), 'audioTracks:', remoteStream.getAudioTracks());
+      if ((remoteStream.getVideoTracks() || []).length === 0) {
+        console.warn('Remote stream contains no video tracks - remote will be a black screen');
+      }
+    } catch (err) {
+      console.warn('Could not inspect remoteStream tracks:', err);
+    }
+
+    videoEl.srcObject = remoteStream;
+
+    // Autoplay policies can block playback unless the element is muted or a user gesture occurred.
+    // Attempt to play, and if autoplay is blocked, try muted play as a fallback.
+    const tryPlay = async () => {
+      try {
+        await videoEl.play();
+      } catch (err) {
+        console.warn('Autoplay for remote video failed, trying muted play fallback:', err);
+        try {
+          const prevMuted = videoEl.muted;
+          videoEl.muted = true; // allow autoplay when muted
+          await videoEl.play();
+          // leave muted as-is; do not automatically unmute to avoid surprising the user
+          videoEl.muted = prevMuted;
+        } catch (err2) {
+          console.error('Muted autoplay also failed for remote video:', err2);
+        }
+      }
+    };
+
+    const onLoadedMeta = () => {
+      tryPlay();
+    };
+
+    videoEl.addEventListener('loadedmetadata', onLoadedMeta);
+    // Try immediately as well
+    tryPlay();
+
+    // After a short delay, if the video element still has no dimensions despite remote stream having video tracks,
+    // try creating a new MediaStream from the remote video tracks and reassigning srcObject.
+    const fallbackTimer = window.setTimeout(() => {
+      try {
+        const hasVideoTracks = (remoteStream.getVideoTracks() || []).length > 0;
+        if (hasVideoTracks && videoEl.videoWidth === 0 && videoEl.videoHeight === 0) {
+          console.warn('Remote video element has zero dimensions despite video tracks present; trying track-only MediaStream fallback.');
+          const videoOnly = new MediaStream(remoteStream.getVideoTracks());
+          videoEl.srcObject = videoOnly;
+          // attempt to play again
+          tryPlay();
+        }
+      } catch (err) {
+        console.warn('Fallback check for remote video failed:', err);
+      }
+    }, 700);
+
+    return () => {
+      videoEl.removeEventListener('loadedmetadata', onLoadedMeta);
+      window.clearTimeout(fallbackTimer);
+    };
   }, [remoteStream]);
 
   useEffect(() => {
