@@ -6,7 +6,7 @@ import App from './App.tsx'
 
 const queryClient = new QueryClient()
 
-document.documentElement.requestFullscreen();
+// document.documentElement.requestFullscreen();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
